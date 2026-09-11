@@ -1,0 +1,6 @@
+# Dashboard de Manutenção VP - dependências para deploy web (Streamlit Cloud etc.)
+streamlit>=1.43
+pandas>=2.2
+altair>=5.4
+openpyxl>=3.1
+matplotlib>=3.7        # usado por Styler.background_gradient nas tabelas

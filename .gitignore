@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Python portátil local (NÃO versionar - o deploy usa requirements.txt)
+python_portatil/
+
+# Temporários do Excel
+~$*.xlsx
+
+# Base-Zero de preços: usadas só na análise inicial, o app NÃO precisa delas.
+# (Se quiser versioná-las, remova as 2 linhas abaixo.)
+Base-Zero Preços*.xlsx
+Baze_zero_materiais_vp.xlsx
+
+# SO / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
