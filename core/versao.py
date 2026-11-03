@@ -30,6 +30,8 @@
 # 3.0.1 (03/11/2026): URL do banco aceita postgresql://, postgres:// e
 #   postgresql+psycopg:// (convertidas para psycopg2) — corrige "No module named
 #   'psycopg'" no Streamlit Cloud.
+# 3.0.2 (03/11/2026): requirements.txt com versões fixas (as testadas) — o Cloud
+#   tinha instalado Streamlit 1.66.1 / pandas 3.1.0, não testados.
 
-APP_VERSION = "3.0.1"
+APP_VERSION = "3.0.2"
 APP_NOME = "Plano VP"

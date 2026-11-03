@@ -1,8 +1,10 @@
 # Plano VP — dependências (local e Streamlit Community Cloud)
-streamlit>=1.50
-pandas>=2.2
-altair>=5.4
-openpyxl>=3.1
-matplotlib>=3.7        # usado por Styler.background_gradient
-SQLAlchemy>=2.0        # banco (SQLite local / PostgreSQL)
-psycopg2-binary>=2.9   # driver PostgreSQL (Neon)
+# Versões FIXAS = as testadas (AppTest em todas as telas, 03/11/2026).
+# Para atualizar: subir a versão aqui, testar local e só então fazer push.
+streamlit==1.64.0
+pandas==3.0.6
+altair==6.3.0
+openpyxl==3.1.5
+matplotlib==3.11.2     # usado por Styler.background_gradient
+SQLAlchemy==2.1.6      # banco (SQLite local / PostgreSQL)
+psycopg2-binary==2.9.13  # driver PostgreSQL (Neon)
