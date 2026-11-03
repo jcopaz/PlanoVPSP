@@ -1,6 +1,8 @@
-# Dashboard de Manutenção VP - dependências para deploy web (Streamlit Cloud etc.)
-streamlit>=1.43
+# Plano VP — dependências (local e Streamlit Community Cloud)
+streamlit>=1.50
 pandas>=2.2
 altair>=5.4
 openpyxl>=3.1
-matplotlib>=3.7        # usado por Styler.background_gradient nas tabelas
+matplotlib>=3.7        # usado por Styler.background_gradient
+SQLAlchemy>=2.0        # banco (SQLite local / PostgreSQL)
+psycopg2-binary>=2.9   # driver PostgreSQL (Neon)

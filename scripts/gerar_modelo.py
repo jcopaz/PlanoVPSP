@@ -12,164 +12,18 @@ aponte ``arquivo_plano`` do parametros.xlsx para ele e use ``trimestre = 4``.
 import os
 import random
 import sys
-import unicodedata
 from datetime import date, timedelta
-
-from openpyxl import Workbook
-from openpyxl.workbook.defined_name import DefinedName
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.worksheet.table import Table, TableStyleInfo
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 from core import modelo as M  # noqa: E402
+from core.planilha import gerar  # noqa: E402
 
 PASTA = os.path.join(RAIZ, "modelos")
-LINHAS_VALIDACAO = 3000          # menus suspensos valem até esta linha
-
-AZUL = PatternFill("solid", fgColor="0052CC")
-CINZA = PatternFill("solid", fgColor="F1F5F9")
-BRANCO_NEGRITO = Font(bold=True, color="FFFFFF")
-
-COLS_DATA = {"Data Planejada", "Data", "Prazo"}
-COLS_NUM = {"Quantidade Programada", "Quantidade Realizada", "Peso"}
-
-LEIAME = [
-    ("Plano de Manutenção VP — modelo do trimestre", True),
-    ("", False),
-    ("Quem preenche cada aba", True),
-    ("Pesos — PCM, 1x por trimestre: peso RELATIVO de cada meta em cada Depto. "
-     "Não precisa somar 1: o sistema normaliza entre as metas que têm plano.", False),
-    ("Plano_PCM — 1 pessoa, no início do trimestre: copie as linhas da planilha do PCM "
-     "(uma linha por dia/meta/equipe).", False),
-    ("Lancamentos — programadores, ao longo do trimestre: o que foi executado. "
-     "No Plano = Sim (atividade do plano) ou Não (extra plano).", False),
-    ("Listas — opções dos menus suspensos (equipes, justificativas...). Pode acrescentar itens.", False),
-    ("", False),
-    ("Regras", True),
-    ("• Não mude o nome das abas nem dos cabeçalhos.", False),
-    ("• Descrição Meta deve existir na aba Pesos para o mesmo Depto (senão a linha não pesa na curva).", False),
-    ("• Datas no formato dd/mm/aaaa. A semana é calculada automaticamente (igual ao WEEKNUM do Excel).", False),
-    ("• Não há fórmulas: Semana, Coordenação e pesos são calculados pelo dashboard.", False),
-    ("• Quantidade Realizada menor que a programada → preencha a Justificativa.", False),
-    ("", False),
-    ("Depois de preencher", True),
-    ("Salve na pasta do projeto e, no parametros.xlsx (aba Config), aponte arquivo_plano "
-     "para este arquivo e ajuste trimestre.", False),
-]
 
 
 # --------------------------------------------------------------------------- #
-def _aba_tabela(wb, nome, colunas, linhas, nome_tabela):
-    ws = wb.create_sheet(nome)
-    ws.append(colunas)
-    for ln in linhas:
-        ws.append([ln.get(c) for c in colunas])
-    n = max(ws.max_row, 2)
-    ref = f"A1:{get_column_letter(len(colunas))}{n}"
-    tab = Table(displayName=nome_tabela, ref=ref)
-    tab.tableStyleInfo = TableStyleInfo(name="TableStyleMedium2", showRowStripes=True)
-    ws.add_table(tab)
-    for i, c in enumerate(colunas, start=1):
-        cel = ws.cell(row=1, column=i)
-        cel.fill, cel.font = AZUL, BRANCO_NEGRITO
-        cel.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        letra = get_column_letter(i)
-        ws.column_dimensions[letra].width = max(12, min(40, len(c) + 6))
-        if c in COLS_DATA:
-            for r in range(2, LINHAS_VALIDACAO + 1):
-                ws.cell(row=r, column=i).number_format = "dd/mm/yyyy"
-        elif c in COLS_NUM:
-            for r in range(2, n + 1):
-                ws.cell(row=r, column=i).number_format = "#,##0.00"
-    ws.row_dimensions[1].height = 30
-    ws.freeze_panes = "A2"
-    return ws
-
-
-def _aba_listas(wb, listas):
-    ws = wb.create_sheet(M.ABA_LISTAS)
-    nomes = list(listas)
-    for i, nome in enumerate(nomes, start=1):
-        cel = ws.cell(row=1, column=i, value=nome)
-        cel.fill, cel.font = AZUL, BRANCO_NEGRITO
-        for r, v in enumerate(listas[nome], start=2):
-            ws.cell(row=r, column=i, value=v)
-        ws.column_dimensions[get_column_letter(i)].width = 32
-    ws.freeze_panes = "A2"
-    return {nome: get_column_letter(i) for i, nome in enumerate(nomes, start=1)}
-
-
-def _nome_lista(wb, origem, letras_listas) -> str:
-    """Cria (uma vez) um intervalo nomeado para a lista e devolve o nome.
-    Menus suspensos via nome funcionam em qualquer versão do Excel."""
-    sem_acento = unicodedata.normalize("NFKD", origem.split(":")[-1]).encode("ascii", "ignore").decode()
-    nome = "lst" + "".join(ch for ch in sem_acento.title() if ch.isalnum())
-    if nome not in wb.defined_names:
-        if origem.startswith("Pesos:"):
-            letra = get_column_letter([c.value for c in wb[M.ABA_PESOS][1]].index(origem.split(":", 1)[1]) + 1)
-            aba = M.ABA_PESOS
-        else:
-            letra, aba = letras_listas[origem], M.ABA_LISTAS
-        wb.defined_names[nome] = DefinedName(nome, attr_text=f"{aba}!${letra}$2:${letra}$500")
-    return nome
-
-
-def _validacoes(wb, letras_listas):
-    for (aba, coluna), origem in M.VALIDACOES.items():
-        ws = wb[aba]
-        cab = [c.value for c in ws[1]]
-        if coluna not in cab:
-            continue
-        formula = "=" + _nome_lista(wb, origem, letras_listas)
-        dv = DataValidation(type="list", formula1=formula, allow_blank=True, showErrorMessage=True,
-                            errorTitle="Valor fora da lista",
-                            error=f"Escolha um valor da lista ({origem}). Para incluir um novo, "
-                                  f"acrescente na aba {origem.split(':')[0] if ':' in origem else M.ABA_LISTAS}.")
-        letra_col = get_column_letter(cab.index(coluna) + 1)
-        dv.add(f"{letra_col}2:{letra_col}{LINHAS_VALIDACAO}")
-        ws.add_data_validation(dv)
-    # Quantidades: número >= 0
-    for aba in (M.ABA_PLANO, M.ABA_LANC):
-        ws = wb[aba]
-        cab = [c.value for c in ws[1]]
-        for coluna in ("Quantidade Programada", "Quantidade Realizada"):
-            if coluna in cab:
-                letra_col = get_column_letter(cab.index(coluna) + 1)
-                dv = DataValidation(type="decimal", operator="greaterThanOrEqual", formula1="0",
-                                    allow_blank=True, showErrorMessage=True,
-                                    errorTitle="Quantidade inválida", error="Informe um número ≥ 0.")
-                dv.add(f"{letra_col}2:{letra_col}{LINHAS_VALIDACAO}")
-                ws.add_data_validation(dv)
-
-
-def gerar(destino: str, pesos, plano, lanc, listas) -> None:
-    wb = Workbook()
-    ws = wb.active
-    ws.title = M.ABA_LEIAME
-    for txt, negrito in LEIAME:
-        ws.append([txt])
-        ws.cell(row=ws.max_row, column=1).font = Font(bold=negrito, size=14 if ws.max_row == 1 else 11)
-    ws.column_dimensions["A"].width = 120
-    ws.sheet_view.showGridLines = False
-
-    _aba_tabela(wb, M.ABA_PESOS, M.COLS_PESOS, pesos, "tbPesos")
-    _aba_tabela(wb, M.ABA_PLANO, M.COLS_PLANO, plano, "tbPlanoPCM")
-    _aba_tabela(wb, M.ABA_LANC, M.COLS_LANC, lanc, "tbLancamentos")
-    letras = _aba_listas(wb, listas)
-    _validacoes(wb, letras)
-    for nome in (M.ABA_PESOS, M.ABA_PLANO, M.ABA_LANC):
-        wb[nome].sheet_properties.tabColor = "0052CC"
-    wb[M.ABA_LISTAS].sheet_properties.tabColor = "94A3B8"
-    wb.active = 0
-    os.makedirs(os.path.dirname(destino), exist_ok=True)
-    wb.save(destino)
-
-
-# --------------------------------------------------------------------------- #
-# Dados FICTÍCIOS do exemplo (4º tri/2026, semanas 40-52)
+# Dados FICTÍCIOS do exemplo (4º tri/2026, semanas 40-53)
 # --------------------------------------------------------------------------- #
 METAS_EX = {   # meta: (grupo, unidade, SLA, quantidade típica por dia)
     "SOLDA": ("Manutenção Preventiva", "UN", 2, 2),

@@ -26,3 +26,6 @@ Baze_zero_materiais_vp.xlsx
 Thumbs.db
 .vscode/
 .idea/
+
+# Segredos (URL do banco com senha)
+.streamlit/secrets.toml

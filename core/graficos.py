@@ -47,6 +47,43 @@ def curva_fisica(curva: pd.DataFrame, semana_atual: int) -> alt.Chart:
     return (ch + regua).properties(height=460).configure_view(strokeOpacity=0)
 
 
+def curvas_coordenacoes(curvas: dict[str, pd.DataFrame], semana_atual: int) -> alt.Chart:
+    """Realizado acumulado de cada coordenação (linha cheia) x Meta PCM dela (tracejada)."""
+    partes = []
+    for coord, c in curvas.items():
+        for col, tipo in (("realizado", "Realizado"), ("meta_pcm", "Meta PCM")):
+            d = c[["Semana", col]].rename(columns={col: "Valor"}).dropna()
+            d["Coordenação"], d["Tipo"] = coord, tipo
+            partes.append(d)
+    if not partes:
+        return alt.Chart(pd.DataFrame({"Semana": [], "Valor": []})).mark_line()
+    long = pd.concat(partes, ignore_index=True)
+    ch = (alt.Chart(long).mark_line(strokeWidth=2.5)
+          .encode(x=alt.X("Semana:O", axis=alt.Axis(labelAngle=0)),
+                  y=alt.Y("Valor:Q", title="Aderência acumulada", axis=alt.Axis(format="%")),
+                  color=alt.Color("Coordenação:N", legend=alt.Legend(orient="top", title=None)),
+                  strokeDash=alt.StrokeDash("Tipo:N", scale=alt.Scale(domain=["Realizado", "Meta PCM"],
+                                                                      range=[[1, 0], [6, 4]]),
+                                            legend=alt.Legend(orient="top", title=None)),
+                  tooltip=["Coordenação:N", "Tipo:N", "Semana:O", alt.Tooltip("Valor:Q", format=".1%")]))
+    regua = (alt.Chart(pd.DataFrame({"Semana": [semana_atual]}))
+             .mark_rule(color=CINZA, strokeDash=[3, 3]).encode(x="Semana:O"))
+    return (ch + regua).properties(height=420).configure_view(strokeOpacity=0)
+
+
+def evolucao(hist: pd.DataFrame, valor: str = "Aderência", titulo: str = "Aderência") -> alt.Chart:
+    """Barras agrupadas por período (trimestre ou ano) x visão (Gerência/coordenações)."""
+    base = alt.Chart(hist).encode(
+        x=alt.X("Período:N", sort=None, title=None, axis=alt.Axis(labelAngle=0)),
+        xOffset="Visão:N",
+        y=alt.Y(f"{valor}:Q", title=titulo, axis=alt.Axis(format="%")),
+        color=alt.Color("Visão:N", legend=alt.Legend(orient="top", title=None)),
+        tooltip=["Período:N", "Visão:N", alt.Tooltip(f"{valor}:Q", format=".1%")])
+    barras = base.mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
+    meta = alt.Chart(pd.DataFrame({"y": [1.0]})).mark_rule(color=CINZA, strokeDash=[4, 4]).encode(y="y:Q")
+    return (barras + meta).properties(height=380).configure_view(strokeOpacity=0)
+
+
 def curva_financeira(curva: pd.DataFrame, semana_atual: int, mostrar_ref: bool = True) -> alt.Chart:
     ren = {"orcado_plan": "Orçado Planejado", "realizado": "Realizado",
            "projetado": "Projetado", "ref_orcado": "Orçamento OPEX oficial",

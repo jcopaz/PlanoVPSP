@@ -22,7 +22,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 from core import config, importar_pcm  # noqa: E402
 from core import modelo as M  # noqa: E402
-from scripts.gerar_modelo import gerar  # noqa: E402
+from core.planilha import gerar  # noqa: E402
 
 
 def _preservar(arquivo: str):

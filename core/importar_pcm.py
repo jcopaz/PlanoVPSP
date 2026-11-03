@@ -159,7 +159,7 @@ def importar(arquivo_export, p: config.Parametros, catalogo: pd.DataFrame | None
     deptos = set(p.coord_por_depto())
     fora = sorted(set(df["Departamento"]) - deptos)
     if fora:
-        r.avisos.append(f"{len(fora)} Depto(s) do export fora do parametros.xlsx foram ignorados "
+        r.avisos.append(f"{len(fora)} Depto(s) do export fora das Coordenações cadastradas foram ignorados "
                         f"({', '.join(fora[:6])}{' ...' if len(fora) > 6 else ''}).")
     df = df[df["Departamento"].isin(deptos)]
     n_sem = int(((df["Plano Trimestral"] <= 0) | (df["Peso Item Redist"] <= 0)).sum())
@@ -167,7 +167,7 @@ def importar(arquivo_export, p: config.Parametros, catalogo: pd.DataFrame | None
     if n_sem:
         r.avisos.append(f"{n_sem} meta(s) sem plano ou sem peso no trimestre não entraram.")
     if df.empty:
-        r.avisos.append("Nenhuma meta com plano para os Deptos do parametros.xlsx.")
+        r.avisos.append("Nenhuma meta com plano para os Deptos cadastrados (Coordenações).")
         return r
 
     # ---- Pesos ----------------------------------------------------------- #
@@ -182,7 +182,7 @@ def importar(arquivo_export, p: config.Parametros, catalogo: pd.DataFrame | None
     sem_unid = sorted(set(df["Descrição Meta"]) - set(cat))
     if sem_unid:
         r.avisos.append(f"{len(sem_unid)} meta(s) sem Unidade/SLA"
-                        f"{' no catálogo' if cat else ' (importado sem --catalogo)'}: preencha na aba Pesos.")
+                        f"{' no catálogo' if cat else ' (sem catálogo)'}: preencha em Configurações → SLA e Unidades.")
     for _, x in df.iterrows():
         info = cat.get(x["Descrição Meta"], {})
         r.pesos.append({"Depto": x["Departamento"], "Grupo": x.get("GRUPO"),
@@ -216,7 +216,7 @@ def importar(arquivo_export, p: config.Parametros, catalogo: pd.DataFrame | None
         fora_janela = sorted(set(sem[(sem < sem_ini) | (sem > sem_fim)]))
         if fora_janela:
             r.avisos.append(f"Planejamento tem datas nas semanas {fora_janela}, fora da janela "
-                            f"{sem_ini}-{sem_fim} da aba Trimestres: ajuste o parametros.xlsx.")
+                            f"{sem_ini}-{sem_fim} do trimestre: ajuste em Configurações → Trimestres.")
         r.plano = [{k: _limpa(v) for k, v in ln.items()} for ln in pl.to_dict("records")]
         return r
 

@@ -163,4 +163,7 @@ def _tabela_itens(base, p, sem_fim) -> pd.DataFrame:
     tab[num] = tab[num].fillna(0.0)
     tab["Pendente"] = (tab["Plano"] - tab["Qtd. Realizado"]).clip(lower=0)
     tab["% Realizado"] = tab["Qtd. Realizado"] / tab["Plano"].replace(0, np.nan)
+    # SLA = produção esperada da equipe por dia -> dias de equipe que faltam
+    sla = pd.to_numeric(tab["SLA"], errors="coerce") if "SLA" in tab.columns else pd.Series(np.nan, index=tab.index)
+    tab["Dias Equipe p/ Concluir"] = np.ceil(tab["Pendente"] / sla.where(sla > 0))
     return tab.sort_values("Peso_no_Plano", ascending=False)

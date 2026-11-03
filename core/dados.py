@@ -104,17 +104,39 @@ def _texto(s: pd.Series, maiusculo: bool = False) -> pd.Series:
     return s.str.upper() if maiusculo else s
 
 
+def ler_abas_modelo(xls: pd.ExcelFile) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """(pesos, plano, lancamentos) de uma planilha no modelo v3."""
+    return (_le_aba_modelo(xls, modelo.ABA_PESOS, modelo.COLS_PESOS),
+            _le_aba_modelo(xls, modelo.ABA_PLANO, modelo.COLS_PLANO),
+            _le_aba_modelo(xls, modelo.ABA_LANC, modelo.COLS_LANC))
+
+
 def _carregar_modelo(xls: pd.ExcelFile, p: config.Parametros):
-    """Lê o modelo v3 (Pesos/Plano_PCM/Lancamentos) e devolve o mesmo formato
-    canônico do Diário antigo, com as colunas que eram fórmula já calculadas."""
+    """Lê o modelo v3 (Pesos/Plano_PCM/Lancamentos) e devolve o formato canônico."""
+    return montar_canonico(*ler_abas_modelo(xls), p)
+
+
+def montar_canonico(pesos: pd.DataFrame, plano: pd.DataFrame, lanc: pd.DataFrame,
+                    p: config.Parametros, catalogo: pd.DataFrame | None = None):
+    """Pesos/Plano/Lançamentos (cabeçalhos do modelo v3, vindos do Excel OU do
+    banco) -> mesmo formato canônico do Diário antigo, com as colunas que eram
+    fórmula já calculadas. ``catalogo`` (Depto, Descrição Meta, Unidade, SLA)
+    completa Unidade/SLA que não vierem na aba Pesos."""
     avisos: list[str] = []
     o_pcm = p.g("origem_pcm", str, "PCM")
     o_exec = p.g("origem_execucao", str, "Coordenação")
     s_sim, s_nao = p.g("plano_sim", str, "Sim"), p.g("plano_nao", str, "Não")
 
-    pesos = _le_aba_modelo(xls, modelo.ABA_PESOS, modelo.COLS_PESOS)
-    plano = _le_aba_modelo(xls, modelo.ABA_PLANO, modelo.COLS_PLANO)
-    lanc = _le_aba_modelo(xls, modelo.ABA_LANC, modelo.COLS_LANC)
+    pesos = pesos.reindex(columns=modelo.COLS_PESOS).copy()
+    plano = plano.reindex(columns=modelo.COLS_PLANO).copy()
+    lanc = lanc.reindex(columns=modelo.COLS_LANC).copy()
+    if catalogo is not None and not catalogo.empty:
+        cat = catalogo.copy()
+        cat["_k"] = _texto(cat["Depto"], True) + "|" + _texto(cat["Descrição Meta"], True)
+        cat = cat.drop_duplicates("_k").set_index("_k")
+        k = _texto(pesos["Depto"], True) + "|" + _texto(pesos["Descrição Meta"], True)
+        for c in ("Unidade", "SLA"):
+            pesos[c] = pesos[c].where(pesos[c].notna(), k.map(cat[c]))
 
     # ---- Plano PCM e Lançamentos no formato do Diário -------------------- #
     pcm = pd.DataFrame({
