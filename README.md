@@ -50,9 +50,11 @@ plano e **mantém os lançamentos**. Depois, os programadores lançam em **Lanç
 de Peso), o modelo v3 e os backups exportados pelo próprio app. Para vários arquivos
 de uma vez: `python scripts/carregar_no_banco.py arquivo1.xlsx arquivo2.xlsx`.
 
-## Publicar na web (Streamlit Community Cloud + Neon)
+## Publicar na web (Hugging Face Spaces + Neon)
 
-Passo a passo completo: [docs/PUBLICACAO.md](docs/PUBLICACAO.md). Resumo:
+Passo a passo completo: [docs/PUBLICACAO.md](docs/PUBLICACAO.md) — hoje o app roda no
+**Hugging Face Spaces** (Dockerfile + envio automático pelo GitHub Actions). Resumo da
+alternativa Streamlit Cloud:
 
 1. Crie um projeto no **Neon** (região São Paulo) e copie a connection string.
 2. Em share.streamlit.io → *New app* → repositório `jcopaz/PlanoVPSP`, arquivo `app.py`.

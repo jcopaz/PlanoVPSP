@@ -185,6 +185,7 @@ python -c "from core import config,dados,fisico; p=config.carregar(); p.cfg['arq
 | 03/11/2026 | Login próprio PBKDF2 (não Supabase Auth) | org Supabase Free bloqueada em out/2026; funciona igual em SQLite e Neon |
 | 03/11/2026 | SQLite local + Neon em produção, mesma camada SQLAlchemy | começar já sem servidor; publicar só trocando a URL |
 | 03/11/2026 | SLA por Depto × Meta em cadastro próprio | "produção esperada da equipe", configurada 1 vez por coordenação |
+| 03/11/2026 | Hospedagem no Hugging Face Spaces (Docker + sync pelo GitHub Actions) | Streamlit Cloud perdia ~15% das requisições; Render free compartilha 750 h com o Gestão_OS |
 | 03/11/2026 | Janela de semanas automática pelo calendário (4º tri/2026 = 40–53) | 2026 tem semana 53 com plano |
 
 ## 9. Pendências / roadmap
@@ -197,5 +198,9 @@ python -c "from core import config,dados,fisico; p=config.carregar(); p.cfg['arq
 
 - Orçamento (curva OPEX) na web: hoje lê o Excel da pasta; levar a aba PLAN ORÇ para o banco via upload.
 - Login corporativo (AD/Entra ID) no lugar da senha própria.
+- **HubSP (SSO)**: aceitar o ticket do portal (`?ticket=`, JWT assinado, `aud` = slug do app,
+  `jti` de uso único) em `auth/` — identidade ligada pelo `usuarios.email`; o Plano VP continua
+  revalidando perfil/Depto. Contrato em `HubSP/docs/02_ARQUITETURA_SSO.md`. Manter o e-mail
+  dos usuários preenchido desde já.
 - Migrações de schema versionadas (pasta `database/migracoes/`).
 - Ampliar para as áreas E/I e Gerência VP (basta cadastrar as coordenações; validar pesos).

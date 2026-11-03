@@ -36,6 +36,10 @@
 #   No Streamlit Cloud o servidor uvicorn (1.57+) perdia ~20% das requisições
 #   ("Failed to fetch dynamically imported module ... TextInput.js"); outro app
 #   com Tornado respondeu 100% no mesmo teste.
+# 3.1.0 (03/11/2026): deploy no Hugging Face Spaces (Dockerfile + workflow
+#   sync-hf.yml que envia a main para o Space a cada push). Motivo: apps da conta
+#   no Streamlit Cloud perdiam ~15% das requisições (Sentinel também); Render
+#   gratuito descartado (750 h/mês já tomadas pela API do Gestão_OS).
 
-APP_VERSION = "3.0.3"
+APP_VERSION = "3.1.0"
 APP_NOME = "Plano VP"

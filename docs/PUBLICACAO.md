@@ -1,4 +1,48 @@
-# Plano VP — Publicação (Neon + Streamlit Community Cloud)
+# Plano VP — Publicação
+
+**Hospedagem atual: Hugging Face Spaces** (seção A). O Streamlit Community Cloud (seção B,
+antiga) foi deixado de lado em 03/11/2026: os apps da conta perdiam ~15% das requisições
+(erro "Failed to fetch dynamically imported module"), inclusive o Sentinel. O Render gratuito
+foi descartado porque as 750 h/mês da conta já são consumidas pela API do Gestão_OS (com
+keep-alive) — estourar suspende TODOS os serviços gratuitos, inclusive ela.
+
+## A. Hugging Face Spaces (atual)
+
+Como funciona: a cada push na `main`, o workflow `.github/workflows/sync-hf.yml` envia o
+código para o Space (sem as planilhas .xlsx) e o Hugging Face reconstrói a imagem do
+`Dockerfile`. O banco continua no Neon.
+
+1. **Conta**: crie em https://huggingface.co/join (de preferência com o e-mail corporativo).
+2. **Space**: *New Space* →
+   - Owner: seu usuário · Space name: `plano-vp`
+   - License: *other* · SDK: **Docker** → template **Blank**
+   - Hardware: **CPU basic (free)** · Visibility: **Public** (Space privado só abre para quem
+     tem conta no Hugging Face com acesso; o login do app protege os dados)
+   - *Create Space*
+3. **Secret do banco**: no Space → *Settings* → *Variables and secrets* → **New secret**
+   - Name: `PLANO_DB_URL`
+   - Value: a connection string do Neon (`postgresql://...?sslmode=require`), **sem aspas**
+4. **Token**: https://huggingface.co/settings/tokens → *Create new token* → tipo **Write**
+   (ou *Fine-grained* com escrita só no Space `plano-vp`) → copie o token (`hf_...`).
+5. **GitHub** (`jcopaz/PlanoVPSP` → *Settings* → *Secrets and variables* → *Actions*):
+   - aba **Secrets** → *New repository secret*: `HF_TOKEN` = o token do passo 4
+   - aba **Variables** → *New repository variable*: `HF_SPACE` = `SEU_USUARIO/plano-vp`
+6. **Primeiro envio**: GitHub → *Actions* → **Sync Hugging Face Space** → *Run workflow*.
+   Depois disso, cada push na `main` atualiza o Space sozinho.
+7. **Build**: no Space, aba *Logs*, aguarde *Running* (3–6 min na 1ª vez).
+8. **Acesso**: `https://SEU_USUARIO-plano-vp.hf.space` (endereço direto, sem a moldura do site).
+   Como o banco é o mesmo Neon, administrador, usuários e trimestres já gravados continuam lá.
+
+Observações:
+- **Dorme** após 48 h sem nenhum acesso; o 1º acesso depois disso leva ~1 min.
+- **Financeiro (OPEX)**: o orçamento (.xlsx) não vai para o Space público; a aba mostra
+  "orçamento não carregado" até o orçamento ser levado para o banco (roadmap).
+- **Atualizar o app**: só `git push` na `main` (acompanhe em GitHub → Actions e na aba
+  *Logs* do Space). Se o workflow avisar "HF_TOKEN/HF_SPACE não configurados", revise o passo 5.
+
+---
+
+## B. Streamlit Community Cloud (alternativa anterior)
 
 Passo a passo para colocar o app na web. Tempo estimado: 20–30 min.
 Arquitetura: **GitHub** (código) → **Streamlit Community Cloud** (roda o app) → **Neon** (banco PostgreSQL).
