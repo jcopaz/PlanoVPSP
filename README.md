@@ -14,6 +14,7 @@ equipes executaram (lançado pelos programadores), por **Gerência** e por
 | **Configurações** | SLA por Depto, equipes, listas, coordenações, trimestres, parâmetros, usuários | conforme perfil |
 
 📘 **Documentação:** [docs/MANUAL_USUARIO.md](docs/MANUAL_USUARIO.md) (como usar) ·
+[docs/PUBLICACAO.md](docs/PUBLICACAO.md) (Neon + Streamlit Cloud, passo a passo) ·
 [docs/DOCUMENTACAO_TECNICA.md](docs/DOCUMENTACAO_TECNICA.md) (como funciona e como manter).
 Versão e histórico de mudanças: [core/versao.py](core/versao.py).
 
@@ -50,6 +51,8 @@ de Peso), o modelo v3 e os backups exportados pelo próprio app. Para vários ar
 de uma vez: `python scripts/carregar_no_banco.py arquivo1.xlsx arquivo2.xlsx`.
 
 ## Publicar na web (Streamlit Community Cloud + Neon)
+
+Passo a passo completo: [docs/PUBLICACAO.md](docs/PUBLICACAO.md). Resumo:
 
 1. Crie um projeto no **Neon** (região São Paulo) e copie a connection string.
 2. Em share.streamlit.io → *New app* → repositório `jcopaz/PlanoVPSP`, arquivo `app.py`.
