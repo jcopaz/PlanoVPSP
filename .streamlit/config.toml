@@ -8,6 +8,9 @@ font = "sans serif"
 
 [server]
 headless = true
+# Tornado (padrão até 1.56). O servidor Starlette/uvicorn perdia ~20% das
+# requisições no Streamlit Cloud (nov/2026). Não ligar sem testar.
+useStarlette = false
 
 [browser]
 gatherUsageStats = false

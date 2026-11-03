@@ -189,6 +189,12 @@ python -c "from core import config,dados,fisico; p=config.carregar(); p.cfg['arq
 
 ## 9. Pendências / roadmap
 
+> **Versão do Streamlit travada em 1.56.0** (`requirements.txt`). Da 1.57 em diante o Streamlit
+> usa só o servidor uvicorn/Starlette, que no Streamlit Cloud perdeu ~20% das requisições em
+> 03/11/2026 (erro "Failed to fetch dynamically imported module" na tela). Antes de subir a versão:
+> publicar num app de teste e medir `/_stcore/health` (ex.: 40 chamadas seguidas, 0 falhas).
+
+
 - Orçamento (curva OPEX) na web: hoje lê o Excel da pasta; levar a aba PLAN ORÇ para o banco via upload.
 - Login corporativo (AD/Entra ID) no lugar da senha própria.
 - Migrações de schema versionadas (pasta `database/migracoes/`).

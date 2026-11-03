@@ -32,6 +32,10 @@
 #   'psycopg'" no Streamlit Cloud.
 # 3.0.2 (03/11/2026): requirements.txt com versões fixas (as testadas) — o Cloud
 #   tinha instalado Streamlit 1.66.1 / pandas 3.1.0, não testados.
+# 3.0.3 (03/11/2026): Streamlit fixado em 1.56.0 (último com servidor Tornado).
+#   No Streamlit Cloud o servidor uvicorn (1.57+) perdia ~20% das requisições
+#   ("Failed to fetch dynamically imported module ... TextInput.js"); outro app
+#   com Tornado respondeu 100% no mesmo teste.
 
-APP_VERSION = "3.0.2"
+APP_VERSION = "3.0.3"
 APP_NOME = "Plano VP"

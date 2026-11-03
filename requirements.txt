@@ -1,7 +1,7 @@
 # Plano VP — dependências (local e Streamlit Community Cloud)
 # Versões FIXAS = as testadas (AppTest em todas as telas, 03/11/2026).
 # Para atualizar: subir a versão aqui, testar local e só então fazer push.
-streamlit==1.64.0
+streamlit==1.56.0       # ÚLTIMA com servidor Tornado — ver docs/DOCUMENTACAO_TECNICA.md §9
 pandas==3.0.6
 altair==6.3.0
 openpyxl==3.1.5
