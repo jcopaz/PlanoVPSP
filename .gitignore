@@ -10,6 +10,8 @@ python_portatil/
 # Dados reais dos trimestres (ficam no OneDrive, não no GitHub público).
 # Os modelos/ têm só dados fictícios e são versionados.
 dados/
+data*.xlsx
+Planejamento PCM*.xlsx
 
 # Temporários do Excel
 ~$*.xlsx

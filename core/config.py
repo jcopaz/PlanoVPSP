@@ -59,7 +59,7 @@ _DEFAULT_TRIMESTRES = pd.DataFrame(
         [1, 1, 13, "JAN;FEV;MAR"],
         [2, 14, 26, "ABR;MAI;JUN"],
         [3, 27, 39, "JUL;AGO;SET"],
-        [4, 40, 52, "OUT;NOV;DEZ"],
+        [4, 40, 53, "OUT;NOV;DEZ"],
     ],
     columns=["Trimestre", "SemanaInicio", "SemanaFim", "Meses"],
 )

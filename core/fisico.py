@@ -88,7 +88,8 @@ def calcular(df, p: config.Parametros, coord: str, sem_ini: int, sem_fim: int) -
                                p.g("faixa_risco", float, .10),
                                p.g("faixa_critico", float, .15))
     if aderencia_proj == 0:
-        tend, classe = "Sem Planejamento", ""
+        tend = "Aguardando Lançamentos" if max(meta_vals, default=0) > 0 else "Sem Planejamento"
+        classe = ""
     elif restantes <= 0:
         ok = aderencia_proj >= meta
         tend = "Concluído: Meta Atingida" if ok else "Concluído: Meta Não Atingida"

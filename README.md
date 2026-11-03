@@ -43,6 +43,26 @@ do parametros.xlsx), **Plano Trimestral** (soma do Plano_PCM) e todos os **pesos
 (`Peso ÷ soma do Depto ÷ Plano Trimestral`) são calculados em `core/dados.py`.
 O formato antigo (`Diário` + `Planilha de Peso`) continua sendo lido.
 
+### Início do trimestre: importar do PCM (1 pessoa)
+
+Baixe do painel do PCM os dois exports do trimestre e rode:
+
+```bash
+python scripts/importar_plano_pcm.py "data (9).xlsx" --planejamento "Planejamento PCM.xlsx" \
+    --catalogo "dados/Plano_<trimestre anterior>.xlsx"
+```
+
+- **`data (9).xlsx`** (pesos por meta) → aba `Pesos` com o **Peso Item Redist** (coluna G).
+- **`Planejamento PCM.xlsx`** (visão congelada, plano por dia) → aba `Plano_PCM`: é a
+  **curva planejada** (Meta PCM). Sem ele, o plano trimestral é dividido igualmente pelas semanas.
+- `--catalogo` copia Unidade/SLA das metas (o export não traz).
+- O trimestre vem do rodapé do export (`Tri/Ano é Tri 4/26`).
+- Gera `dados/Plano_<ano>_T<tri>.xlsx`, com `Lancamentos` em branco e o menu de
+  Equipes já preenchido. Rodar de novo com `--forcar` troca o plano e **mantém os lançamentos**.
+
+Depois disso, os **programadores** lançam na aba `Lancamentos` o que executaram,
+com base na programação deles; o dashboard compara com a curva congelada do PCM.
+
 Migrar uma planilha antiga: `python scripts/converter_planilha_antiga.py "<arquivo>.xlsx"`
 → grava em `dados/` (pasta fora do Git: dados reais não vão para o GitHub).
 
@@ -111,6 +131,7 @@ app.py                  Streamlit — só orquestra a tela
 core/
   config.py             lê parametros.xlsx (com defaults embutidos)
   modelo.py             abas/colunas/menus do modelo v3 (fonte única)
+  importar_pcm.py       exports do PCM (pesos + planejamento congelado) -> modelo v3
   dados.py              carga do modelo v3 ou do Diário antigo; calcula semana e pesos
   fisico.py             curvas físicas + KPIs (lógica da v1, isolada)
   financeiro.py         envelope OPEX da PLAN ORÇ + curvas R$ + rateio por item
@@ -118,6 +139,7 @@ core/
 scripts/gerar_parametros.py   gera o parametros.xlsx padrão
 scripts/gerar_modelo.py       gera modelos/ (modelo em branco + exemplo fictício)
 scripts/converter_planilha_antiga.py   Diário antigo -> modelo v3 (saída em dados/)
+scripts/importar_plano_pcm.py          exports do PCM -> dados/Plano_<ano>_T<tri>.xlsx
 modelos/                Modelo_ e Exemplo_Plano_Trimestre.xlsx
 parametros.xlsx         ← editado a cada trimestre
 app_v1_backup.py        versão anterior (referência)
