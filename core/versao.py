@@ -27,6 +27,9 @@
 #   Excel no modelo v3) e Configurações (SLA por Depto, equipes, listas,
 #   coordenações, trimestres, parâmetros, usuários, auditoria). SLA vira
 #   "Dias de equipe p/ concluir" (Pendente ÷ SLA). Documentação em docs/.
+# 3.0.1 (03/11/2026): URL do banco aceita postgresql://, postgres:// e
+#   postgresql+psycopg:// (convertidas para psycopg2) — corrige "No module named
+#   'psycopg'" no Streamlit Cloud.
 
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.0.1"
 APP_NOME = "Plano VP"

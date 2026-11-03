@@ -23,15 +23,25 @@ RAIZ = Path(__file__).resolve().parent.parent
 SQLITE_PADRAO = RAIZ / "dados" / "plano.db"
 
 
+def _normalizar(url: str) -> str:
+    """Aceita a URL como o Neon entrega (postgresql://, postgres://) ou com outro
+    driver (postgresql+psycopg://) e força o psycopg2, que é o instalado."""
+    url = url.strip().strip('"').strip("'")
+    for prefixo in ("postgresql+psycopg://", "postgresql+psycopg2://", "postgresql://", "postgres://"):
+        if url.startswith(prefixo):
+            return "postgresql+psycopg2://" + url[len(prefixo):]
+    return url
+
+
 def _url() -> str:
     try:
         import streamlit as st
         url = st.secrets.get("database", {}).get("url")
         if url:
-            return url
+            return _normalizar(url)
     except Exception:  # noqa: BLE001 — sem secrets.toml / fora do Streamlit
         pass
-    return os.environ.get("PLANO_DB_URL") or f"sqlite:///{SQLITE_PADRAO.as_posix()}"
+    return _normalizar(os.environ.get("PLANO_DB_URL") or f"sqlite:///{SQLITE_PADRAO.as_posix()}")
 
 
 def descricao_banco() -> str:
