@@ -24,6 +24,30 @@ streamlit run app.py
 
 ---
 
+## Planilha do trimestre — modelo v3 (sem fórmulas)
+
+Modelos em [`modelos/`](modelos/) (gerados por `python scripts/gerar_modelo.py`):
+
+- **`Modelo_Plano_Trimestre.xlsx`** — em branco, para cada novo trimestre.
+- **`Exemplo_Plano_Trimestre.xlsx`** — preenchido com dados **fictícios** (4º tri/2026).
+
+| Aba | Quem preenche | Quando |
+|---|---|---|
+| `Pesos` | PCM | 1x por trimestre — peso **relativo** de cada meta por Depto (não precisa somar 1) |
+| `Plano_PCM` | 1 pessoa | início do trimestre — cópia das linhas da planilha do PCM |
+| `Lancamentos` | programadores | ao longo do trimestre — execução (`No Plano` = Sim) e extra plano (`Não`) |
+| `Listas` | quem administra | opções dos menus suspensos (equipes, justificativas...) |
+
+Não há fórmulas: **Semana** (= `WEEKNUM` do Excel), **Coordenação** (aba `Coordenacoes`
+do parametros.xlsx), **Plano Trimestral** (soma do Plano_PCM) e todos os **pesos**
+(`Peso ÷ soma do Depto ÷ Plano Trimestral`) são calculados em `core/dados.py`.
+O formato antigo (`Diário` + `Planilha de Peso`) continua sendo lido.
+
+Migrar uma planilha antiga: `python scripts/converter_planilha_antiga.py "<arquivo>.xlsx"`
+→ grava em `dados/` (pasta fora do Git: dados reais não vão para o GitHub).
+
+---
+
 ## Trocar de trimestre (sem tocar em código)
 
 Abra **`parametros.xlsx`** → aba **`Config`**:
@@ -86,11 +110,15 @@ Não existe custo unitário confiável por item de manutenção, então:
 app.py                  Streamlit — só orquestra a tela
 core/
   config.py             lê parametros.xlsx (com defaults embutidos)
-  dados.py              carga do Diário + Planilha de Peso (busca dinâmica de cabeçalho)
+  modelo.py             abas/colunas/menus do modelo v3 (fonte única)
+  dados.py              carga do modelo v3 ou do Diário antigo; calcula semana e pesos
   fisico.py             curvas físicas + KPIs (lógica da v1, isolada)
   financeiro.py         envelope OPEX da PLAN ORÇ + curvas R$ + rateio por item
   graficos.py           Altair (substitui streamlit-echarts, incompatível)
 scripts/gerar_parametros.py   gera o parametros.xlsx padrão
+scripts/gerar_modelo.py       gera modelos/ (modelo em branco + exemplo fictício)
+scripts/converter_planilha_antiga.py   Diário antigo -> modelo v3 (saída em dados/)
+modelos/                Modelo_ e Exemplo_Plano_Trimestre.xlsx
 parametros.xlsx         ← editado a cada trimestre
 app_v1_backup.py        versão anterior (referência)
 ```

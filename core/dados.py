@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 """Carga do plano do trimestre.
 
-Reaproveita a "busca dinâmica de cabeçalho" da v1 (as planilhas que os
+Aceita dois formatos (detectado pelas abas):
+- **modelo v3** (``Pesos`` / ``Plano_PCM`` / ``Lancamentos``, sem fórmulas) - ver
+  ``core/modelo.py``; aqui se calculam semana, coordenação e pesos.
+- **antigo** (``Diário`` + ``Planilha de Peso``, com as fórmulas do Excel).
+
+Para o formato antigo, reaproveita a "busca dinâmica de cabeçalho" da v1 (as planilhas que os
 colaboradores preenchem costumam ter linhas de título antes do cabeçalho real)
 e o mapeamento flexível de nomes de coluna.
 """
@@ -9,9 +14,10 @@ from __future__ import annotations
 
 import re
 
+import numpy as np
 import pandas as pd
 
-from . import config
+from . import config, modelo
 
 # Nome canônico -> variações aceitas (minúsculas, sem espaços duplicados)
 MAPA_DIARIO = {
@@ -63,10 +69,169 @@ def _renomeia(df: pd.DataFrame, mapa: dict) -> pd.DataFrame:
     return df
 
 
+def semana_excel(datas: pd.Series) -> pd.Series:
+    """Equivalente ao =WEEKNUM(data) do Excel (semana começa no domingo; 1/jan = semana 1)."""
+    d = pd.to_datetime(datas, errors="coerce")
+    doy = d.dt.dayofyear
+    dom_d = (d.dt.dayofweek + 1) % 7                 # domingo = 0
+    desloc = (dom_d - (doy - 1)) % 7                 # dia da semana de 1/jan (domingo = 0)
+    sem = (doy - 1 + desloc) // 7 + 1
+    return sem.fillna(0).astype(int)
+
+
+def _sim_nao(valor, s_sim: str, s_nao: str):
+    v = str(valor).strip().lower()
+    if v in ("sim", "s", "x", "yes", "1", "true"):
+        return s_sim
+    if v in ("não", "nao", "n", "no", "0", "false"):
+        return s_nao
+    return pd.NA
+
+
+def _le_aba_modelo(xls: pd.ExcelFile, nome: str, colunas: list[str]) -> pd.DataFrame:
+    real = next(n for n in xls.sheet_names if n.strip().lower() == nome.lower())
+    df = pd.read_excel(xls, real)
+    df.columns = _limpa_cols(df.columns)
+    for c in colunas:
+        if c not in df.columns:
+            df[c] = pd.NA
+    df = df[colunas]
+    return df.dropna(how="all")
+
+
+def _texto(s: pd.Series, maiusculo: bool = False) -> pd.Series:
+    s = s.astype("string").str.strip().str.replace(r"\s+", " ", regex=True)
+    return s.str.upper() if maiusculo else s
+
+
+def _carregar_modelo(xls: pd.ExcelFile, p: config.Parametros):
+    """Lê o modelo v3 (Pesos/Plano_PCM/Lancamentos) e devolve o mesmo formato
+    canônico do Diário antigo, com as colunas que eram fórmula já calculadas."""
+    avisos: list[str] = []
+    o_pcm = p.g("origem_pcm", str, "PCM")
+    o_exec = p.g("origem_execucao", str, "Coordenação")
+    s_sim, s_nao = p.g("plano_sim", str, "Sim"), p.g("plano_nao", str, "Não")
+
+    pesos = _le_aba_modelo(xls, modelo.ABA_PESOS, modelo.COLS_PESOS)
+    plano = _le_aba_modelo(xls, modelo.ABA_PLANO, modelo.COLS_PLANO)
+    lanc = _le_aba_modelo(xls, modelo.ABA_LANC, modelo.COLS_LANC)
+
+    # ---- Plano PCM e Lançamentos no formato do Diário -------------------- #
+    pcm = pd.DataFrame({
+        "Origem Programação": o_pcm,
+        "Depto": plano["Depto"],
+        "Data Planejada": plano["Data Planejada"],
+        "Descrição Meta": plano["Descrição Meta"],
+        "Número do Material": plano["Nº Material"],
+        "Equipe": plano["Equipe"],
+        "Ativo": plano["Ativo"],
+        "Equipamento": plano["Equipamento"],
+        "Tipo Material": plano["Tipo Material"],
+        "Quantidade Programada": plano["Quantidade Programada"],
+        "Plano": s_sim,
+        "QUANTIDADE REALIZADA": 0.0,
+        "Observação": plano["Observação"],
+    })
+    exe = pd.DataFrame({
+        "Origem Programação": o_exec,
+        "Depto": lanc["Depto"],
+        "Data Planejada": lanc["Data"],
+        "Descrição Meta": lanc["Descrição Meta"],
+        "Número do Material": lanc["Nº Material"],
+        "Equipe": lanc["Equipe"],
+        "Ativo": lanc["Ativo"],
+        "Tipo Material": lanc["Tipo Material"],
+        "Quantidade Programada": lanc["Quantidade Programada"],
+        "Plano": lanc["No Plano"].map(lambda v: _sim_nao(v, s_sim, s_nao)),
+        "QUANTIDADE REALIZADA": lanc["Quantidade Realizada"],
+        "Justificativa Padrão": lanc["Justificativa"],
+        "Observação": lanc["Observação"],
+        "Plano de ação": lanc["Plano de Ação"],
+        "Responsável": lanc["Responsável"],
+        "Prazo": lanc["Prazo"],
+        "Status": lanc["Status"],
+        "Programador": lanc["Programador"],
+    })
+    n_sem_plano = int(exe["Plano"].isna().sum())
+    if n_sem_plano:
+        avisos.append(f"{n_sem_plano} lançamento(s) sem 'No Plano' = Sim/Não foram ignorados nas curvas.")
+    dia = pd.concat([pcm, exe], ignore_index=True)
+
+    dia["Depto"] = _texto(dia["Depto"], maiusculo=True)
+    dia["Descrição Meta"] = _texto(dia["Descrição Meta"], maiusculo=True)
+    dia["Data Planejada"] = pd.to_datetime(dia["Data Planejada"], errors="coerce", dayfirst=True)
+    n_sem_data = int(dia["Data Planejada"].isna().sum())
+    if n_sem_data:
+        avisos.append(f"{n_sem_data} linha(s) sem data válida (ficam fora das curvas semanais).")
+    for c in ("Quantidade Programada", "QUANTIDADE REALIZADA"):
+        dia[c] = pd.to_numeric(dia[c], errors="coerce").fillna(0.0)
+
+    dia["Semana"] = semana_excel(dia["Data Planejada"])
+    coord = p.coord_por_depto()
+    dia["Coordenação"] = dia["Depto"].map(coord)
+    sem_coord = sorted(dia.loc[dia["Coordenação"].isna() & dia["Depto"].notna(), "Depto"].unique())
+    if sem_coord:
+        avisos.append(f"Depto sem coordenação em parametros.xlsx (aba Coordenacoes): {', '.join(sem_coord)}.")
+    dia["Chave Peso"] = dia["Depto"].fillna("") + "|" + dia["Descrição Meta"].fillna("")
+
+    # ---- Pesos: normaliza por Depto entre as metas com plano > 0 --------- #
+    pesos["Depto"] = _texto(pesos["Depto"], maiusculo=True)
+    pesos["Descrição Meta"] = _texto(pesos["Descrição Meta"], maiusculo=True)
+    pesos["Peso"] = pd.to_numeric(pesos["Peso"], errors="coerce").fillna(0.0).clip(lower=0)
+    pesos = pesos.dropna(subset=["Depto", "Descrição Meta"])
+    pesos["Chave Peso"] = pesos["Depto"] + "|" + pesos["Descrição Meta"]
+    pesos = pesos.drop_duplicates("Chave Peso", keep="last")
+
+    plano_tri = (dia[dia["Origem Programação"] == o_pcm]
+                 .groupby("Chave Peso")["Quantidade Programada"].sum().rename("Plano Trimestral"))
+    pesos["Plano Trimestral"] = pesos["Chave Peso"].map(plano_tri).astype(float).fillna(0.0)
+    ativo = pesos["Plano Trimestral"] > 0
+    soma = pesos[ativo].groupby("Depto")["Peso"].transform("sum")
+    pesos["Peso Item"] = 0.0
+    pesos.loc[ativo, "Peso Item"] = (pesos.loc[ativo, "Peso"] / soma.replace(0, np.nan)).fillna(0.0)
+    pesos["Peso por unidade"] = (pesos["Peso Item"] / pesos["Plano Trimestral"].replace(0, np.nan)).fillna(0.0)
+    pesos["Peso Item Ger"] = pesos["Peso Item"] / p.n_coord_gerencia
+    pesos["Coordenação Peso"] = pesos["Depto"].map(coord)
+
+    sem_peso = sorted(set(plano_tri[plano_tri > 0].index) - set(pesos.loc[pesos["Peso"] > 0, "Chave Peso"]))
+    if sem_peso:
+        avisos.append("Metas no Plano_PCM sem peso na aba Pesos (não contam na curva): "
+                      + ", ".join(sem_peso[:8]) + (" ..." if len(sem_peso) > 8 else ""))
+
+    # SLA/Unidade como texto ("2" e não 2.0; "-" quando falta) - evita coluna mista na tabela
+    for c in ("Unidade", "SLA"):
+        pesos[c] = pesos[c].map(lambda v: "-" if pd.isna(v) else
+                                (f"{v:g}" if isinstance(v, (int, float)) else str(v).strip()))
+    por_chave = pesos.set_index("Chave Peso")
+    for c, destino in [("Grupo", "Grupo"), ("Unidade", "Unidade"), ("SLA", "SLA"),
+                       ("Peso por unidade", "Peso Unitário"), ("Peso Item", "Peso Item"),
+                       ("Peso Item Ger", "Peso Item Ger"), ("Plano Trimestral", "Plano Trimestral")]:
+        dia[destino] = dia["Chave Peso"].map(por_chave[c])
+    dia["Peso Unitário"] = pd.to_numeric(dia["Peso Unitário"], errors="coerce").fillna(0.0)
+    dia["Unidade"] = dia["Unidade"].fillna("-")
+    dia["SLA"] = dia["SLA"].fillna("-")
+
+    e_exec = dia["Origem Programação"] == o_exec
+    dia["Peso Realizado Linha"] = np.where(e_exec & (dia["Plano"] == s_sim),
+                                           dia["QUANTIDADE REALIZADA"] * dia["Peso Unitário"], 0.0)
+    dia["Peso Extra Linha"] = np.where(e_exec & (dia["Plano"] == s_nao),
+                                       dia["QUANTIDADE REALIZADA"] * dia["Peso Unitário"], 0.0)
+    dia["Peso Planejado Linha"] = np.where((dia["Origem Programação"] == o_pcm) & (dia["Plano"] == s_sim),
+                                           dia["Quantidade Programada"] * dia["Peso Unitário"], 0.0)
+    for c in ["Origem Programação", "Plano", "Coordenação", "Descrição Meta"]:
+        dia[c] = dia[c].astype("string").str.strip()
+
+    return dia, pesos, avisos
+
+
 def carregar_plano(p: config.Parametros):
     """Retorna (df_diario_merge, df_peso, avisos:list[str])."""
     avisos: list[str] = []
     arq = config.caminho(p.g("arquivo_plano", str, ""))
+
+    with pd.ExcelFile(arq) as xls:
+        if modelo.eh_modelo(xls.sheet_names):
+            return _carregar_modelo(xls, p)
 
     bruto = pd.read_excel(arq, sheet_name=p.g("aba_diario", str, "Diário"), header=None, nrows=25)
     h = _acha_linha_cabecalho(bruto)
