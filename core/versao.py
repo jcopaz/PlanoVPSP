@@ -71,6 +71,13 @@
 #   Gerência 1º–3º tri a ≤0,5 p.p. do Power BI.
 # 4.2.1 (04/11/2026): aviso no Resumo de que pode haver pequena variação (até ~0,5 p.p.)
 #   em relação ao Power BI; decisão registrada (variação <1 p.p. aceita).
+# 5.0.0 (04/11/2026): proteção dos lançamentos. Corrige DataError no Neon ao subir o
+#   Realizado (Motivo de Perda > 80 caracteres): justificativa vira TEXT e todo texto
+#   maior que a coluna é cortado antes de gravar. Schema: lancamentos.origem
+#   (upload|app) e tabela lancamentos_copia — migração automática (schema._migrar).
+#   Upload bloqueado em trimestre fechado (exceto admin); confirmação quando o upload
+#   apagar lançamentos digitados no app; cópia automática antes de substituir, excluir
+#   ou restaurar, com restauração em Configurações → Trimestres (admin).
 
-APP_VERSION = "4.2.1"
+APP_VERSION = "5.0.0"
 APP_NOME = "Plano VP"

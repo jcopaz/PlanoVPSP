@@ -20,6 +20,7 @@ regra de cálculo em [REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md).
 | 04/11/2026 | 4.0.0 | Aderência pela **regra oficial do PCM** (Adr_Ativo), validada contra o Power BI. |
 | 04/11/2026 | 4.1.x | Regra documentada (REGRA_ADERENCIA_PCM.md), visão por material, `scripts/conferir_pcm.py`, testes. |
 | 04/11/2026 | 4.2.0 | **Gerência pela regra do PCM** (export consolidado `data (10)`): Σ pesos, DEPTO soma volume, ATIVO soma realizado limitado. |
+| 04/11/2026 | 5.0.0 | **Proteção dos lançamentos**: corrige erro do Neon no upload (texto > coluna); upload bloqueado em trimestre fechado; confirmação antes de apagar lançamentos do app; cópia automática + restauração. |
 
 ---
 
@@ -78,7 +79,9 @@ regra de cálculo em [REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md).
 4. **Número oficial é a fonte da verdade**: a regra do PCM só fechou testando variantes contra o print do
    Power BI — e o teste virou script (`scripts/conferir_pcm.py`) para não se perder.
 4. **Cotas gratuitas são por conta**, não por serviço (Render, Supabase): somar o uso de todos os apps.
-5. **Dados reais fora do GitHub público** (`dados/`, exports do PCM, `secrets.toml`).
+6. **Teste no banco de produção (PostgreSQL), não só no SQLite**: o SQLite não confere tamanho de
+   texto — o upload do Realizado passou local e quebrou no Neon (Motivo de Perda com 115 caracteres).
+7. **Dados reais fora do GitHub público** (`dados/`, exports do PCM, `secrets.toml`).
 
 ---
 

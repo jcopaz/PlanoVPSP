@@ -17,7 +17,7 @@ import math
 from datetime import date, datetime
 
 import pandas as pd
-from sqlalchemy import and_, delete, func, insert, select, update
+from sqlalchemy import Date, DateTime, String, and_, delete, func, insert, or_, select, update
 
 from database import schema as S
 from database.client import get_engine
@@ -72,6 +72,17 @@ def _texto(v, maiusculo=False):
         v = int(v)                     # Nº Material 100025431.0 -> "100025431"
     s = " ".join(str(v).split())
     return s.upper() if maiusculo else s
+
+
+def _cabe(tab, linhas: list[dict]) -> list[dict]:
+    """Corta textos maiores que a coluna (o PostgreSQL recusa; o SQLite aceitava calado)."""
+    tam = {c.name: c.type.length for c in tab.c if isinstance(c.type, String) and c.type.length}
+    for ln in linhas:
+        for k, n in tam.items():
+            v = ln.get(k)
+            if isinstance(v, str) and len(v) > n:
+                ln[k] = v[:n]
+    return linhas
 
 
 def _auditar(conn, usuario, acao, tabela=None, registro_id=None, detalhe=None):
@@ -232,6 +243,7 @@ def atualizar_trimestre(tid: int, usuario: str, **campos) -> None:
 
 def excluir_trimestre(tid: int, usuario: str) -> None:
     with get_engine().begin() as conn:
+        _copiar_lancamentos(conn, tid, "excluir trimestre", usuario)
         for tab in (S.lancamentos, S.plano, S.pesos):
             conn.execute(delete(tab).where(tab.c.trimestre_id == tid))
         conn.execute(delete(S.trimestres).where(S.trimestres.c.id == tid))
@@ -311,25 +323,27 @@ def substituir_plano(tid: int, pesos_df: pd.DataFrame, plano_df: pd.DataFrame, u
         conn.execute(delete(S.pesos).where(S.pesos.c.trimestre_id == tid))
         conn.execute(delete(S.plano).where(S.plano.c.trimestre_id == tid))
         if lp:
-            conn.execute(insert(S.pesos), lp)
+            conn.execute(insert(S.pesos), _cabe(S.pesos, lp))
         if ll:
-            conn.execute(insert(S.plano), ll)
+            conn.execute(insert(S.plano), _cabe(S.plano, ll))
         _auditar(conn, usuario, "substituir_plano", "plano", tid, {"pesos": len(lp), "plano": len(ll)})
         _bump(conn)
     return len(lp), len(ll)
 
 
 def substituir_lancamentos(tid: int, lanc_df: pd.DataFrame, usuario: str) -> int:
+    """Troca TODOS os lançamentos do trimestre (upload). Antes, guarda cópia em lancamentos_copia."""
     agora = datetime.now()
     linhas = []
     for r in lanc_df.to_dict("records"):
         ln = linha_lancamento(r)
         if ln:
-            linhas.append({**ln, "trimestre_id": tid, "criado_por": usuario, "criado_em": agora})
+            linhas.append({**ln, "trimestre_id": tid, "origem": "upload", "criado_por": usuario, "criado_em": agora})
     with get_engine().begin() as conn:
+        _copiar_lancamentos(conn, tid, "upload", usuario)
         conn.execute(delete(S.lancamentos).where(S.lancamentos.c.trimestre_id == tid))
         if linhas:
-            conn.execute(insert(S.lancamentos), linhas)
+            conn.execute(insert(S.lancamentos), _cabe(S.lancamentos, linhas))
         _auditar(conn, usuario, "substituir_lancamentos", "lancamentos", tid, {"linhas": len(linhas)})
         _bump(conn)
     return len(linhas)
@@ -349,16 +363,89 @@ def salvar_edicao_lancamentos(tid: int, novos: list[dict], alterados: dict[int, 
         if excluidos:
             conn.execute(delete(S.lancamentos).where(and_(no_escopo, S.lancamentos.c.id.in_(excluidos))))
         for lid, valores in alterados.items():
+            valores = _cabe(S.lancamentos, [dict(valores)])[0]
             res = conn.execute(update(S.lancamentos).where(and_(no_escopo, S.lancamentos.c.id == lid))
-                               .values(**valores, alterado_por=usuario, alterado_em=agora))
+                               .values(**valores, origem="app", alterado_por=usuario, alterado_em=agora))
             if res.rowcount != 1:
                 raise PermissionError(f"Lançamento #{lid} não encontrado no seu escopo (trimestre/Depto).")
         if novos:
-            conn.execute(insert(S.lancamentos),
-                         [{**n, "trimestre_id": tid, "criado_por": usuario, "criado_em": agora} for n in novos])
+            conn.execute(insert(S.lancamentos), _cabe(S.lancamentos, [
+                {**n, "trimestre_id": tid, "origem": "app", "criado_por": usuario, "criado_em": agora} for n in novos]))
         _auditar(conn, usuario, "editar_lancamentos", "lancamentos", tid,
                  {"novos": len(novos), "alterados": sorted(alterados), "excluidos": sorted(excluidos)})
         _bump(conn)
+
+# endregion
+
+
+# region ====================== SESSÃO 5b: Proteção dos lançamentos ======================
+# Todo upload que substitui lançamentos, toda exclusão de trimestre e toda
+# restauração guardam ANTES uma cópia (JSON) em lancamentos_copia, na mesma
+# transação. Ficam as COPIAS_POR_TRIMESTRE mais recentes de cada trimestre.
+
+COPIAS_POR_TRIMESTRE = 10
+
+
+def lancamentos_do_app() -> dict[int, int]:
+    """{trimestre_id: nº de lançamentos digitados/corrigidos na tela de Lançamentos}."""
+    c = S.lancamentos.c
+    with get_engine().connect() as conn:
+        return dict(conn.execute(select(c.trimestre_id, func.count())
+                                 .where(or_(c.origem == "app", c.alterado_por.is_not(None)))
+                                 .group_by(c.trimestre_id)).fetchall())
+
+
+def _copiar_lancamentos(conn, tid: int, motivo: str, usuario: str) -> None:
+    linhas = [dict(r) for r in conn.execute(select(S.lancamentos).where(S.lancamentos.c.trimestre_id == tid)).mappings()]
+    t = conn.execute(select(S.trimestres.c.ano, S.trimestres.c.trimestre).where(S.trimestres.c.id == tid)).first()
+    if not linhas or t is None:
+        return
+    for ln in linhas:
+        ln.pop("id"), ln.pop("trimestre_id")
+    cp = S.lancamentos_copia
+    conn.execute(insert(cp).values(ano=t.ano, trimestre=t.trimestre, quando=datetime.now(), usuario=usuario,
+                                   motivo=motivo, linhas=len(linhas),
+                                   dados=json.dumps(linhas, ensure_ascii=False, default=str)))
+    velhas = (select(cp.c.id).where(and_(cp.c.ano == t.ano, cp.c.trimestre == t.trimestre))
+              .order_by(cp.c.quando.desc(), cp.c.id.desc()).offset(COPIAS_POR_TRIMESTRE))
+    ids = [r[0] for r in conn.execute(velhas)]
+    if ids:
+        conn.execute(delete(cp).where(cp.c.id.in_(ids)))
+
+
+def listar_copias(ano: int, tri: int) -> pd.DataFrame:
+    cp = S.lancamentos_copia
+    with get_engine().connect() as conn:
+        return _df(conn, select(cp.c.id, cp.c.quando, cp.c.usuario, cp.c.motivo, cp.c.linhas)
+                   .where(and_(cp.c.ano == ano, cp.c.trimestre == tri)).order_by(cp.c.quando.desc()))
+
+
+def restaurar_copia(copia_id: int, usuario: str) -> int:
+    """Volta os lançamentos do trimestre para a cópia (o estado atual vira uma nova cópia)."""
+    cp = S.lancamentos_copia
+    with get_engine().connect() as conn:
+        r = conn.execute(select(cp).where(cp.c.id == copia_id)).mappings().first()
+    if r is None:
+        raise ValueError("Cópia não encontrada.")
+    tid = garantir_trimestre(int(r["ano"]), int(r["trimestre"]), usuario)
+    tipos = {c.name: c.type for c in S.lancamentos.c}
+    linhas = []
+    for ln in json.loads(r["dados"]):
+        for k, v in ln.items():
+            if isinstance(v, str) and isinstance(tipos.get(k), DateTime):
+                ln[k] = datetime.fromisoformat(v)
+            elif isinstance(v, str) and isinstance(tipos.get(k), Date):
+                ln[k] = date.fromisoformat(v[:10])
+        linhas.append({k: v for k, v in ln.items() if k in tipos} | {"trimestre_id": tid})
+    with get_engine().begin() as conn:
+        _copiar_lancamentos(conn, tid, "antes de restaurar", usuario)
+        conn.execute(delete(S.lancamentos).where(S.lancamentos.c.trimestre_id == tid))
+        if linhas:
+            conn.execute(insert(S.lancamentos), linhas)
+        _auditar(conn, usuario, "restaurar_lancamentos", "lancamentos", tid,
+                 {"copia": copia_id, "linhas": len(linhas)})
+        _bump(conn)
+    return len(linhas)
 
 # endregion
 

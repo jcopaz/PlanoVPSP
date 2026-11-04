@@ -8,6 +8,9 @@
 #   B) Planilha de trimestre — modelo v3 (inclusive backup exportado daqui) ou a
 #      planilha antiga (Diário + Planilha de Peso). Serve para carregar o
 #      HISTÓRICO (trimestres passados com plano e realizado).
+#   Proteções: trimestre FECHADO não aceita upload (exceto administrador);
+#   se o upload for apagar lançamentos digitados no app, pede confirmação;
+#   o banco guarda cópia antes de substituir (restaurável em Configurações).
 # Exportação (todos): planilha do trimestre no modelo v3 (mesmo layout do
 #   Excel) e backup completo (.zip com todos os trimestres + cadastros).
 
@@ -36,7 +39,32 @@ def _parametros_para(ano: int, tri: int) -> config.Parametros:
     return motor.parametros(cfg, coords, ano, tri, ini, fim)
 
 
+def _fechado(ano, tri) -> bool:
+    """Trimestre fechado e o usuário não pode alterá-lo (só o administrador pode)."""
+    ex = _ja_existe(ano, tri)
+    return ex is not None and ex.get("status") == "fechado" and not perm.pode_editar_fechado()
+
+
+def _confirmar_substituicao(trimestres: list[tuple[int, int]], chave: str) -> bool:
+    """Se o upload vai apagar lançamentos digitados no app, exige confirmação explícita."""
+    do_app = q.lancamentos_do_app()
+    afetados = []
+    for ano, tri in trimestres:
+        ex = _ja_existe(ano, tri)
+        n = do_app.get(int(ex["id"]), 0) if ex else 0
+        if n:
+            afetados.append(f"{ex['rotulo']}: **{n}**")
+    if not afetados:
+        return True
+    st.warning("⚠️ Este upload vai **apagar lançamentos digitados no app** pelos programadores — "
+               + " · ".join(afetados) + ". Antes de substituir, o sistema guarda uma cópia; o administrador "
+               "pode restaurá-la em Configurações → Trimestres.")
+    return st.checkbox("Entendo e quero substituir esses lançamentos", key=chave)
+
+
 def _gravar(ano, tri, pesos, plano, lanc, trocar_plano: bool, trocar_lanc: bool) -> str:
+    if _fechado(ano, tri):
+        raise PermissionError(f"{tri}º tri/{ano} está fechado — só o administrador pode alterar.")
     usuario = get_login()
     tid = q.garantir_trimestre(int(ano), int(tri), usuario)
     partes = []
@@ -65,6 +93,21 @@ def _gravar_tipos_medicao(arquivo_pesos) -> None:
         novo = importar_pcm.atualizar_metas_depto(cfg.get("metas_medicao_depto", ""), tipos)
         if novo != cfg.get("metas_medicao_depto", ""):
             q.salvar_config({"metas_medicao_depto": novo}, get_login())
+
+
+def _executar(gravacao) -> None:
+    """Roda a gravação e mostra erro legível. Cada substituição é uma transação: o que deu
+    erro fica como estava, mas o que veio antes (outro trimestre, ou o plano) já foi gravado."""
+    try:
+        st.session_state["msg_dados"] = gravacao()
+    except PermissionError as e:
+        st.error(f"🔒 {e}")
+        return
+    except Exception as e:  # noqa: BLE001
+        st.error(f"Não foi possível gravar ({type(e).__name__}). Parte do upload pode ter sido gravada — "
+                 "envie de novo (o upload substitui, não duplica) e, se o erro voltar, avise o administrador.")
+        return
+    st.rerun()
 
 
 def _ja_existe(ano, tri) -> dict | None:
@@ -133,10 +176,12 @@ def _upload_pcm():
     if pesos.empty:
         st.error("Nada para importar.")
         return
+    if _fechado(r.ano, r.trimestre):
+        st.error(f"🔒 O {r.trimestre}º tri/{r.ano} está **fechado**: só o administrador pode substituir o plano.")
+        return
     if st.button("📥 Importar plano do PCM", type="primary"):
         _gravar_tipos_medicao(cam_pesos)
-        st.session_state["msg_dados"] = _gravar(r.ano, r.trimestre, pesos, plano, None, True, False)
-        st.rerun()
+        _executar(lambda: _gravar(r.ano, r.trimestre, pesos, plano, None, True, False))
 
 
 @st.cache_data(show_spinner="Lendo os exports do PCM...", max_entries=2)
@@ -188,22 +233,31 @@ def _upload_exports_historico(por_tipo: dict) -> None:
                        "Plano (linhas)": len(d["plano"]) if "plano" in d else "— mantém o atual",
                        "Realizado (linhas)": len(lanc) if lanc is not None else "—",
                        "Considera Plano = Sim": int((lanc["No Plano"] == "Sim").sum()) if lanc is not None else "—",
-                       "Hoje no sistema": (f"{ex['linhas_plano']} plano · {ex['lancamentos']} lanç." if ex else "novo")})
+                       "Hoje no sistema": (f"{ex['linhas_plano']} plano · {ex['lancamentos']} lanç."
+                                           + (" · 🔒 fechado" if ex.get("status") == "fechado" else "")
+                                           if ex else "novo")})
     st.dataframe(pd.DataFrame(linhas), hide_index=True, width="stretch")
-    escolha = st.multiselect("Trimestres a gravar", [r["Trimestre"] for r in linhas],
-                             default=[r["Trimestre"] for r in linhas])
+    fechados = [f"{tri}º tri/{ano}" for ano, tri in hist if _fechado(ano, tri)]
+    if fechados:
+        st.info("🔒 Fechado(s), fora do upload (só o administrador altera): " + ", ".join(fechados))
+    livres = [r["Trimestre"] for r in linhas if r["Trimestre"] not in fechados]
+    escolha = st.multiselect("Trimestres a gravar", livres, default=livres)
     st.caption("Para cada trimestre escolhido: o plano (se veio no Planejado) e os lançamentos são **substituídos** "
                "pelos do PCM — inclusive lançamentos feitos na tela de Lançamentos.")
-    if st.button("📥 Importar do PCM", type="primary", disabled=not escolha):
+    alvo = [(ano, tri) for (ano, tri), d in hist.items() if f"{tri}º tri/{ano}" in escolha]
+    ok = _confirmar_substituicao([k for k in alvo if "lanc" in hist[k]], "conf_subst_pcm")
+    if st.button("📥 Importar do PCM", type="primary", disabled=not (alvo and ok)):
         if "pcm_pesos" in por_tipo:
             _gravar_tipos_medicao(comum.salvar_temporario(por_tipo["pcm_pesos"]))
-        msgs = []
-        for (ano, tri), d in hist.items():
-            if f"{tri}º tri/{ano}" in escolha:
+
+        def gravar_todos():
+            msgs = []
+            for ano, tri in alvo:
+                d = hist[(ano, tri)]
                 msgs.append(_gravar(ano, tri, d.get("pesos"), d.get("plano"), d.get("lanc"),
                                     "plano" in d, "lanc" in d))
-        st.session_state["msg_dados"] = "  \n".join(msgs)
-        st.rerun()
+            return "  \n".join(msgs)
+        _executar(gravar_todos)
 
 
 def _upload_planilha():
@@ -259,12 +313,15 @@ def _upload_planilha():
     c3, c4 = st.columns(2)
     trocar_plano = c3.checkbox("Gravar Pesos + Plano", value=len(plano) > 0)
     trocar_lanc = c4.checkbox("Gravar Lançamentos", value=len(lanc) > 0)
+    if _fechado(ano, tri):
+        st.error(f"🔒 O {tri}º tri/{ano} está **fechado**: só o administrador pode substituir.")
+        return
     if existe is not None:
         st.warning(f"O {existe['rotulo']} já existe ({existe['linhas_plano']} linhas de plano, "
                    f"{existe['lancamentos']} lançamentos). O que estiver marcado acima será SUBSTITUÍDO.")
-    if st.button("📥 Importar planilha", type="primary", disabled=not (trocar_plano or trocar_lanc)):
-        st.session_state["msg_dados"] = _gravar(ano, tri, pesos, plano, lanc, trocar_plano, trocar_lanc)
-        st.rerun()
+    ok = not trocar_lanc or _confirmar_substituicao([(ano, tri)], "conf_subst_planilha")
+    if st.button("📥 Importar planilha", type="primary", disabled=not ((trocar_plano or trocar_lanc) and ok)):
+        _executar(lambda: _gravar(ano, tri, pesos, plano, lanc, trocar_plano, trocar_lanc))
 
 # endregion
 

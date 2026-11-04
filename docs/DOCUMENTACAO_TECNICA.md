@@ -64,7 +64,8 @@ Definido em [`database/schema.py`](../database/schema.py) (SQLAlchemy Core). Rod
 | `trimestres` | ano, trimestre, semana_inicio/fim, status (aberto/fechado) | (ano, trimestre) |
 | `pesos` | peso de cada meta por Depto no trimestre | (trimestre_id, depto, meta) |
 | `plano` | visão congelada do PCM: 1 linha por dia/meta/equipe | id |
-| `lancamentos` | execução lançada (com criado_por/alterado_por) | id |
+| `lancamentos` | execução lançada (criado_por/alterado_por; `origem` = upload ou app) | id |
+| `lancamentos_copia` | cópia (JSON) dos lançamentos de um trimestre antes de upload/exclusão/restauração; sem FK (sobrevive à exclusão do trimestre); guarda as 10 mais recentes por trimestre | id |
 | `metas_catalogo` | **Unidade e SLA** por Depto × Meta (vale para todos os trimestres) | (depto, meta) |
 | `listas` | Equipe (por Depto), Justificativa, Status, Tipo Material, Grupo | (tipo, valor, depto) |
 | `coordenacoes` | Depto → Coordenação → Centro de Custo, entra na Gerência | depto |
@@ -84,9 +85,14 @@ fala com o Neon (São Paulo) a ~0,15 s por consulta — antes eram 8–26 consul
 (1–7 s). Quem grava limpa o cache e vê na hora; os demais usuários, em até 10 s. Também evita o
 estouro de tráfego do Neon visto no Gestão_OS (out/2026).
 
-**Mudança de schema**: não há migração automática de colunas. Para alterar uma tabela
-existente em produção, escreva o `ALTER TABLE` em `database/migracoes/AAAA-MM-DD_descricao.sql`,
-rode no Neon e suba **MAJOR** em `core/versao.py`. Tabela nova é criada sozinha.
+**Mudança de schema**: tabela nova é criada sozinha (`create_all`). Coluna nova ou tipo
+alterado em tabela existente vai em `schema._migrar` (idempotente, roda na 1ª conexão — SQLite e
+Neon) e sobe **MAJOR** em `core/versao.py`. Ex. (5.0.0): `lancamentos.origem` e
+`justificativa` VARCHAR(80) → TEXT.
+
+**Tamanho dos textos**: o PostgreSQL recusa texto maior que a coluna (`DataError`); o SQLite
+aceita calado — por isso o erro só aparecia no Neon. `queries._cabe` corta os campos `String(n)`
+antes de todo insert/update de pesos, plano e lançamentos.
 
 ## 4. Regras de cálculo (validadas contra a planilha do 2º tri/2026)
 
@@ -172,6 +178,18 @@ Realizado sem meta (fora do catálogo) e de trimestres sem plano (ordens 2023–
 
 **Backup** — Dados → Exportação: Excel do trimestre no modelo v3 (reimportável) ou .zip
 com todos os trimestres + cadastros. Recomendado: exportar o .zip ao fechar cada trimestre.
+
+**Proteção dos lançamentos** (5.0.0):
+- Re-upload **substitui, não duplica**: trimestre é único por (ano, trimestre); pesos/plano e
+  lançamentos do trimestre são apagados e regravados na mesma transação (erro = nada muda).
+- **Trimestre fechado** não aceita upload (`modules/dados.py::_fechado`), exceto administrador.
+- Se o upload for apagar lançamentos **digitados no app** (`origem = 'app'` ou com
+  `alterado_por`), a tela mostra quantos e exige marcar a confirmação (`_confirmar_substituicao`).
+- **Cópia automática**: `substituir_lancamentos`, `excluir_trimestre` e `restaurar_copia` gravam
+  antes, na mesma transação, o estado atual em `lancamentos_copia`. Restauração: Configurações →
+  Trimestres → ♻️ (admin); o estado atual vira nova cópia, então dá para desfazer a restauração.
+- O que **não** é protegido por cópia: edição/exclusão linha a linha na tela de Lançamentos
+  (fica na auditoria) e plano/pesos (reimportáveis do export do PCM).
 
 ## 6. Segurança e acesso
 

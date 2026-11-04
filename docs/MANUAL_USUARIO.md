@@ -87,7 +87,22 @@ quanto precisa render por semana daqui em diante para fechar 100%.
   Ordens sem Descrição Meta (fora do catálogo do plano) ficam de fora por padrão. Escolha o que gravar (Pesos+Plano e/ou Lançamentos); o que estiver
   marcado **substitui** o que existe naquele trimestre.
 
+## Meus dados estão seguros?
+
+- **O app "dormir" não apaga nada**: os dados ficam no banco (Neon). Confira no rodapé do menu
+  lateral: deve aparecer `PostgreSQL · …`. Se aparecer `SQLite local`, **não lance nada** e avise o
+  administrador (o app perdeu a ligação com o banco e o que for gravado some ao reiniciar).
+- **Subir de novo não duplica**: substitui os dados daquele trimestre.
+- Se um upload for **apagar lançamentos digitados no app**, a tela avisa quantos são e só
+  continua se você marcar "Entendo e quero substituir".
+- **Trimestre fechado** não aceita upload (só o administrador).
+- **Cópia automática**: antes de todo upload que troca lançamentos e antes de excluir um trimestre, o
+  sistema guarda uma cópia. O administrador restaura em **Configurações → Trimestres → ♻️ Restaurar
+  lançamentos** (as 10 últimas cópias de cada trimestre).
+- Boa prática: **uma fonte por trimestre** — ou os programadores lançam no app, ou o PCM sobe o
+  Realizado do SAP. E gere o **backup completo** (.zip) ao fechar cada trimestre.
+
 ## Fechar um trimestre
 
-Configurações → Trimestres → Status **fechado**: os lançamentos ficam somente leitura (o
-administrador ainda pode corrigir). Exporte o backup completo em seguida.
+Configurações → Trimestres → Status **fechado**: os lançamentos ficam somente leitura e o
+trimestre não aceita upload (o administrador ainda pode corrigir). Exporte o backup completo em seguida.

@@ -5,7 +5,8 @@
 #   Equipes         equipes de cada Depto (menu da tela de Lançamentos)
 #   Listas          Justificativas, Status, Tipo Material, Grupo           (admin/PCM)
 #   Coordenações    de-para Depto -> Coordenação -> Centro de Custo         (admin/PCM)
-#   Trimestres      janela de semanas, abrir/fechar, excluir                (admin/PCM)
+#   Trimestres      janela de semanas, abrir/fechar, excluir, restaurar     (admin/PCM;
+#                   excluir e restaurar cópia de lançamentos: admin)
 #   Parâmetros      meta, faixas de risco, orçamento (curva OPEX)           (admin/PCM)
 #   Usuários        cadastro, perfil, Depto delegado, senha provisória      (admin)
 #   Auditoria       quem fez o quê                                          (admin)
@@ -149,6 +150,32 @@ def _aba_trimestres():
             if st.button("Excluir definitivamente", disabled=conf != escolha):
                 q.excluir_trimestre(int(t["id"]), get_login())
                 _ok(f"{escolha} excluído.")
+        _restaurar_lancamentos(tri)
+
+
+def _restaurar_lancamentos(tri: pd.DataFrame):
+    """Cópias automáticas dos lançamentos (antes de upload, exclusão ou restauração)."""
+    with st.expander("♻️ Restaurar lançamentos de uma cópia automática"):
+        st.caption(f"Antes de todo upload que substitui lançamentos, de excluir um trimestre e de restaurar, o "
+                   f"sistema guarda uma cópia (as {q.COPIAS_POR_TRIMESTRE} mais recentes de cada trimestre). "
+                   "Restaurar troca os lançamentos atuais pelos da cópia — e o estado atual vira uma nova cópia.")
+        anos_tri = sorted({(int(a), int(t)) for a, t in zip(tri["ano"], tri["trimestre"])}, reverse=True)
+        c1, c2 = st.columns(2)
+        ano = c1.number_input("Ano", 2020, 2100, anos_tri[0][0] if anos_tri else 2026, key="rest_ano")
+        tr_ = c2.selectbox("Trimestre", [1, 2, 3, 4], index=(anos_tri[0][1] - 1) if anos_tri else 0, key="rest_tri")
+        copias = q.listar_copias(int(ano), int(tr_))
+        if copias.empty:
+            st.info("Nenhuma cópia deste trimestre.")
+            return
+        st.dataframe(copias.rename(columns={"quando": "Quando", "usuario": "Usuário", "motivo": "Motivo",
+                                            "linhas": "Lançamentos"}).drop(columns=["id"]),
+                     hide_index=True, width="stretch")
+        rot = {f"{r.quando:%d/%m/%Y %H:%M} · {r.motivo} · {r.linhas} lanç.": int(r.id) for r in copias.itertuples()}
+        escolha = st.selectbox("Cópia", list(rot), key="rest_copia")
+        conf = st.checkbox("Confirmo: substituir os lançamentos atuais pelos desta cópia", key="rest_conf")
+        if st.button("♻️ Restaurar", disabled=not conf):
+            n = q.restaurar_copia(rot[escolha], get_login())
+            _ok(f"{tr_}º tri/{ano}: {n} lançamentos restaurados.")
 
 
 def _aba_parametros():

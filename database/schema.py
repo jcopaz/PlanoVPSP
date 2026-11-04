@@ -12,6 +12,9 @@
 #               ├─< plano         (visão congelada do PCM, 1 linha por dia/meta)
 #               └─< lancamentos   (execução lançada pelos programadores)
 #
+#   lancamentos_copia  cópia automática dos lançamentos antes de cada substituição
+#                      por upload, exclusão ou restauração (restaurável pelo admin)
+#
 #   metas_catalogo  Unidade + SLA (produção esperada da equipe/dia) por Depto×Meta
 #   listas          opções dos menus (Equipe por Depto, Justificativa, Status...)
 #   coordenacoes    de-para Depto → Coordenação → Centro de Custo
@@ -83,19 +86,33 @@ lancamentos = Table(
     Column("qtd_prog", Float, default=0.0),
     Column("qtd_real", Float, default=0.0),
     Column("no_plano", String(3)),          # Sim | Não
-    Column("justificativa", String(80)),
+    Column("justificativa", Text),           # Motivo de Perda do PCM passa de 80 caracteres
     Column("observacao", Text),
     Column("plano_acao", Text),
     Column("responsavel", String(80)),
     Column("prazo", Date),
     Column("status", String(30)),
     Column("programador", String(80)),
+    Column("origem", String(10)),            # upload | app (digitado na tela de Lançamentos)
     Column("criado_por", String(60)),
     Column("criado_em", DateTime, server_default=func.now()),
     Column("alterado_por", String(60)),
     Column("alterado_em", DateTime),
 )
 Index("ix_lanc_tri", lancamentos.c.trimestre_id)
+
+# Sem FK para trimestres: a cópia sobrevive à exclusão do trimestre.
+lancamentos_copia = Table(
+    "lancamentos_copia", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("ano", Integer, nullable=False),
+    Column("trimestre", Integer, nullable=False),
+    Column("quando", DateTime, nullable=False),
+    Column("usuario", String(60)),
+    Column("motivo", String(40)),             # upload | excluir trimestre | restaurar
+    Column("linhas", Integer, nullable=False),
+    Column("dados", Text, nullable=False),    # JSON com todas as linhas
+)
 
 # endregion
 
@@ -196,3 +213,15 @@ MAPA_LANC = {
 def criar_tabelas(engine) -> None:
     """Cria as tabelas que ainda não existem (idempotente)."""
     metadata.create_all(engine)
+    _migrar(engine)
+
+
+def _migrar(engine) -> None:
+    """Ajustes em tabelas que já existiam (create_all não altera colunas). Idempotente."""
+    from sqlalchemy import inspect, text
+    cols = {c["name"]: c for c in inspect(engine).get_columns("lancamentos")}
+    with engine.begin() as conn:
+        if "origem" not in cols:
+            conn.execute(text("ALTER TABLE lancamentos ADD COLUMN origem VARCHAR(10)"))
+        if engine.dialect.name == "postgresql" and getattr(cols.get("justificativa", {}).get("type"), "length", None):
+            conn.execute(text("ALTER TABLE lancamentos ALTER COLUMN justificativa TYPE TEXT"))
