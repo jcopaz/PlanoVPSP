@@ -28,14 +28,17 @@ jobs:
             echo "::warning::Variável HF_SPACE não configurada — deploy no Hugging Face ignorado."
             exit 0
           fi
+          # Aceita "usuario/nome" ou a URL do Space colada inteira
+          HF_SPACE=$(echo "$HF_SPACE" | sed -E 's#^https?://huggingface.co/##; s#^spaces/##; s#/+$##')
+          echo "Space de destino: spaces/$HF_SPACE"
           # 1. Token OIDC do GitHub (audience do Hugging Face) -> token do HF válido 1 h, só para este Space
-          ID_TOKEN=$(curl -sf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://huggingface.co" | jq -r .value)
-          HF_TOKEN=$(curl -sf -X POST https://huggingface.co/oauth/token -H "Content-Type: application/json" \
-            -d "{\"grant_type\":\"urn:ietf:params:oauth:grant-type:token-exchange\",\"subject_token_type\":\"urn:ietf:params:oauth:token-type:id_token\",\"subject_token\":\"$ID_TOKEN\",\"resource\":\"spaces/$HF_SPACE\"}" \
-            | jq -r .access_token)
-          if [ -z "$HF_TOKEN" ] || [ "$HF_TOKEN" = "null" ]; then
-            echo "::error::Troca OIDC recusada pelo Hugging Face — confira o Trusted Publisher do Space (repository jcopaz/PlanoVPSP, branch main, workflow sync-hf.yml)."
+          ID_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://huggingface.co" | jq -r .value)
+          echo "::add-mask::$ID_TOKEN"
+          RESP=$(curl -sS -X POST https://huggingface.co/oauth/token -H "Content-Type: application/json"             -d "{\"grant_type\":\"urn:ietf:params:oauth:grant-type:token-exchange\",\"subject_token_type\":\"urn:ietf:params:oauth:token-type:id_token\",\"subject_token\":\"$ID_TOKEN\",\"resource\":\"spaces/$HF_SPACE\"}")
+          HF_TOKEN=$(echo "$RESP" | jq -r '.access_token // empty')
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Resposta do Hugging Face: $(echo "$RESP" | jq -c '{error, error_description}')"
+            echo "::error::Troca OIDC recusada ($(echo "$RESP" | jq -r '.error_description // .error')). Confira: Space spaces/$HF_SPACE existe; Trusted Publisher com repository jcopaz/PlanoVPSP, branch main, workflow sync-hf.yml."
             exit 1
           fi
           echo "::add-mask::$HF_TOKEN"
