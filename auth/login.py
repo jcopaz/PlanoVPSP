@@ -115,6 +115,7 @@ def render_trocar_senha() -> None:
         else:
             q.atualizar_usuario(u["id"], u["login"], senha_hash=S.gerar_hash(s1), deve_trocar_senha=False)
             set_usuario({**u, "deve_trocar_senha": False})
+            st.cache_data.clear()      # o app guarda o usuário em cache por 60 s (app.py)
             st.rerun()
     _rodape()
 

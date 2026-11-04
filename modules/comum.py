@@ -45,8 +45,16 @@ def _resultado(tid: int, versao: int):
     return motor.calcular_trimestre(pesos, plano, lanc, catalogo, p)
 
 
-def versao() -> int:
+@st.cache_data(ttl=10, show_spinner=False)
+def _versao_recente() -> int:
     return q.versao_dados()
+
+
+def versao() -> int:
+    """Versão dos dados, consultada no máximo 1x a cada 10 s (cada consulta ao
+    Neon custa ~0,15 s de ida e volta). Quem grava limpa o cache e vê na hora;
+    os demais usuários, em até 10 s."""
+    return _versao_recente()
 
 
 def dados_trimestre(tid: int):

@@ -76,7 +76,10 @@ Neon na rede MRS exige `sslnegotiation=direct` na URL (firewall derruba o SSLReq
 
 **Cache**: toda gravação incrementa `config._versao_dados`; as leituras das telas usam
 `st.cache_data` com essa versão na chave ([`modules/comum.py`](../modules/comum.py)).
-Cada rerun faz 1 consulta leve; o resto só é relido quando alguém grava — evita o
+A própria versão fica em cache por **10 s** e o usuário logado por **60 s** (`app.py`): a
+navegação normal faz **0 consultas** ao banco. Isso importa porque o app (Streamlit Cloud, EUA)
+fala com o Neon (São Paulo) a ~0,15 s por consulta — antes eram 8–26 consultas por clique
+(1–7 s). Quem grava limpa o cache e vê na hora; os demais usuários, em até 10 s. Também evita o
 estouro de tráfego do Neon visto no Gestão_OS (out/2026).
 
 **Mudança de schema**: não há migração automática de colunas. Para alterar uma tabela
@@ -154,8 +157,9 @@ com todos os trimestres + cadastros. Recomendado: exportar o .zip ao fechar cada
 - Programador com Depto delegado só lança e configura SLA/Equipes do seu Depto — validado na
   tela e também no banco (`salvar_edicao_lancamentos` só altera/exclui registros dos Deptos
   permitidos e recusa o resto com `PermissionError`).
-- O usuário é relido do banco a cada interação (`app.py::_usuario_ainda_valido`): conta
-  desativada sai na hora; mudança de perfil/Depto vale sem novo login.
+- O usuário é relido do banco no máximo a cada 60 s (`app.py::_usuario_ainda_valido`): conta
+  desativada sai e mudança de perfil/Depto vale em até 1 minuto, sem novo login. Troca de
+  senha limpa esse cache na hora.
 - Não é possível rebaixar/desativar o **último administrador ativo**, nem o próprio acesso.
 - O 1º administrador só é criado com a tabela de usuários vazia (checagem e insert na mesma transação).
 - Segredos só em `.streamlit/secrets.toml` (no `.gitignore`) ou nos Secrets do Streamlit Cloud.

@@ -51,10 +51,15 @@ ROTAS = {
 }
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def _usuario_do_banco(login: str) -> dict | None:
+    return q.usuario_por_login(login)
+
+
 def _usuario_ainda_valido() -> bool:
-    """Relê o usuário no banco a cada interação: conta desativada sai na hora e
-    mudança de perfil/Depto vale sem precisar sair e entrar de novo."""
-    u = q.usuario_por_login(get_usuario().get("login", ""))
+    """Relê o usuário no banco (no máximo 1x por minuto): conta desativada sai e
+    mudança de perfil/Depto vale em até 60 s, sem precisar sair e entrar de novo."""
+    u = _usuario_do_banco(get_usuario().get("login", ""))
     if not u or not u.get("ativo"):
         clear_session()
         init_session()
@@ -67,7 +72,8 @@ def main() -> None:
     injetar_css()
     init_session()
     try:
-        sem_usuarios = q.contar_usuarios() == 0
+        logado = is_logged_in() and _usuario_ainda_valido()
+        sem_usuarios = not logado and q.contar_usuarios() == 0   # só conta na tela de entrada
     except Exception as e:  # noqa: BLE001
         st.error(f"🚨 Não foi possível conectar ao banco de dados: {e}")
         st.info("Confira a URL em `.streamlit/secrets.toml` ([database] url) ou a variável PLANO_DB_URL. "
@@ -76,7 +82,7 @@ def main() -> None:
 
     if sem_usuarios:
         render_primeiro_admin()
-    elif not is_logged_in() or not _usuario_ainda_valido():
+    elif not logado:
         render_login()
     elif get_usuario().get("deve_trocar_senha"):
         render_trocar_senha()

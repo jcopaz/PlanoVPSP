@@ -42,6 +42,9 @@
 #   gratuito descartado (750 h/mês já tomadas pela API do Gestão_OS).
 # 3.1.1 (03/11/2026): Hugging Face exige PRO em conta nova (cota cpu-basic = 0);
 #   hospedagem volta a ser o Streamlit Cloud. Workflow OIDC mantido para o PRO.
+# 3.1.2 (04/11/2026): desempenho — versão dos dados em cache de 10 s e usuário
+#   logado em cache de 60 s; navegação passa de 8–26 consultas por clique (1–7 s,
+#   app nos EUA x Neon em SP) para 0; troca de senha limpa o cache do usuário.
 
-APP_VERSION = "3.1.1"
+APP_VERSION = "3.1.2"
 APP_NOME = "Plano VP"
