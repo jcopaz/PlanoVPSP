@@ -211,6 +211,11 @@ e realizado reconstruído).
 ## 7. Como reconferir (sempre que o PCM mudar algo ou a cada trimestre fechado)
 
 1. Exportar do Power BI: pesos (`data (N).xlsx`), Planejado, Planejamento do trimestre atual e Realizado.
+   **Tudo no mesmo dia** (e anotar o número de referência nesse mesmo dia): o número do PCM muda com a
+   data de extração — ex.: 1º tri IPA 98,83% num export × 99,27% num print de outro dia. É a maior fonte
+   da variação residual (~0,1–0,5 p.p.). Avaliado em 04/11/2026: importar o realizado oficial por meta
+   (Real Ativo/Volume do export de pesos) reduziria a variação média só ~0,04 p.p. (0,13 → 0,09) e exigiria
+   tabela nova + segundo número por trimestre — **descartado**.
 2. Anotar o **Adr_Ativo** de cada coordenação num CSV `ano;trimestre;depto;aderencia`.
 3. Rodar:
    ```bash
