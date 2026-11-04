@@ -43,7 +43,7 @@ jobs:
           fi
           echo "::add-mask::$HF_TOKEN"
           # 2. Monta o conteúdo do Space
-          rm -rf .git diagnostico
+          rm -rf .git
           cp deploy/hf/README.md README.md
           # O Hugging Face recusa binários sem LFS e o Space é público: nada de planilha/dado
           # (o app usa os padrões embutidos; a aba Financeiro fica sem orçamento).
