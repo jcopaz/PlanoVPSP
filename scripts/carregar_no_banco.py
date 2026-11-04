@@ -57,6 +57,9 @@ def carregar_pcm(pesos_arq, plan_arq=None) -> None:
     ano, tri = tri_ano
     p = motor.parametros(q.ler_config(), q.listar_coordenacoes(), ano, tri, *q.janela_semanas(ano, tri))
     r = importar_pcm.importar(pesos_arq, p, q.listar_catalogo(), plan_arq)
+    novo = importar_pcm.atualizar_metas_depto(q.ler_config().get("metas_medicao_depto", ""),
+                                              importar_pcm.tipos_de_medicao(pesos_arq))
+    q.salvar_config({"metas_medicao_depto": novo}, USUARIO)
     for av in r.avisos:
         print(f"[aviso] {av}")
     pesos, plano = pd.DataFrame(r.pesos), pd.DataFrame(r.plano)

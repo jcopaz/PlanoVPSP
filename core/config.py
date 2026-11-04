@@ -54,6 +54,9 @@ _DEFAULT_CONFIG = {
     "plano_nao": "Não",
     # Grupos que não entram na aderência da Via (o PCM os mede em outros centros)
     "grupos_fora_aderencia": "Saneamento Vegetal;Drenagem",
+    # Metas "Tipo de medição = DEPTO" (export de pesos do PCM): na Gerência somam o volume das
+    # coordenações. Preenchido sozinho na importação; vazio = Gerência sem compensação.
+    "metas_medicao_depto": "",
 }
 
 _DEFAULT_TRIMESTRES = pd.DataFrame(

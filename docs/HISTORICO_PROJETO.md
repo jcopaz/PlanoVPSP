@@ -18,6 +18,8 @@ regra de cálculo em [REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md).
 | 03/11/2026 | 3.1.x | Tentativa de Hugging Face (bloqueada por cota); volta ao Streamlit Cloud; **cache** (navegação sem consultas). |
 | 04/11/2026 | 3.2.0 | Histórico direto dos exports **Planejado/Realizado** do PCM. |
 | 04/11/2026 | 4.0.0 | Aderência pela **regra oficial do PCM** (Adr_Ativo), validada contra o Power BI. |
+| 04/11/2026 | 4.1.x | Regra documentada (REGRA_ADERENCIA_PCM.md), visão por material, `scripts/conferir_pcm.py`, testes. |
+| 04/11/2026 | 4.2.0 | **Gerência pela regra do PCM** (export consolidado `data (10)`): Σ pesos, DEPTO soma volume, ATIVO soma realizado limitado. |
 
 ---
 
@@ -71,7 +73,9 @@ regra de cálculo em [REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md).
 1. **Medir antes de mudar**: contar consultas/bytes por tela com latência simulada achou o gargalo real.
 2. **Comparar com um controle**: app mínimo × app real × app de referência separou "nosso código" de
    "plataforma".
-3. **Número oficial é a fonte da verdade**: a regra do PCM só fechou testando variantes contra o print do
+3. **Peça o export no nível certo**: a Gerência não fechou com 13 fórmulas sobre números de coordenação;
+   fechou na hora com o export consolidado (uma linha por meta).
+4. **Número oficial é a fonte da verdade**: a regra do PCM só fechou testando variantes contra o print do
    Power BI — e o teste virou script (`scripts/conferir_pcm.py`) para não se perder.
 4. **Cotas gratuitas são por conta**, não por serviço (Render, Supabase): somar o uso de todos os apps.
 5. **Dados reais fora do GitHub público** (`dados/`, exports do PCM, `secrets.toml`).
@@ -80,7 +84,8 @@ regra de cálculo em [REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md).
 
 ## Pendências conhecidas
 
-- Validar com o PCM a regra da **Gerência** e do **ano** (hoje média simples).
+- Confirmar a Gerência do 2º e 3º tri com o export consolidado de cada trimestre (como o `data (10)`).
+- Validar com o PCM a regra do **ano** (hoje média dos trimestres).
 - **Disciplinas E/I** (Eletro/Infra) — cadastrar Deptos e definir com o PCM como se combinam.
 - **Orçamento (curva OPEX) na web**: hoje depende do Excel na pasta.
 - Hospedagem estável: Render Starter ou HF PRO, se o erro de .js incomodar.

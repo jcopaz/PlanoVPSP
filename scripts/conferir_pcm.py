@@ -10,6 +10,7 @@ Use sempre que o PCM mudar algo (pesos, colunas, regra) ou a cada trimestre fech
 --referencia: CSV (separador ;) com os números do Power BI, uma linha por trimestre x coordenação:
     ano;trimestre;depto;aderencia
     2026;1;V.SP.IPA;0,9927
+    2026;1;GERENCIA;0,9962        (linha da Gerência: depto = GERENCIA)
 (aderência em fração ou em %, vírgula ou ponto). Sem --referencia, só mostra os números do app.
 
 Roda o MESMO código do app (core/importar_pcm.py + core/motor.py), em memória, sem banco.
@@ -48,6 +49,7 @@ def main() -> None:
     p0 = config.carregar()
     deptos = set(p0.coord_por_depto())
     cfg = {k: str(v) for k, v in p0.cfg.items()}
+    cfg["metas_medicao_depto"] = importar_pcm.atualizar_metas_depto("", importar_pcm.tipos_de_medicao(a.pesos))
     c = p0.coordenacoes[p0.coordenacoes["Depto"] != ""]
     coords = pd.DataFrame({"depto": c["Depto"], "coordenacao": c["Coordenacao"], "centro_custo": c["CentroCusto"],
                            "entra_gerencia": c["EntraNaGerencia"].eq("Sim")})
@@ -73,7 +75,7 @@ def main() -> None:
             continue
         p = motor.parametros(cfg, coords, ano, tri, *janela_semanas(ano, tri))
         r = motor.calcular_trimestre(d["pesos"], d["plano"], d.get("lanc", pd.DataFrame()), None, p)
-        linhas = [(r.rotulo_gerencia, None, r.gerencia)] + [(cn, nome.get(cn), rf) for cn, rf in r.coords.items()]
+        linhas = [(r.rotulo_gerencia, "GERENCIA", r.gerencia)] + [(cn, nome.get(cn), rf) for cn, rf in r.coords.items()]
         print(f"\n{tri}º tri/{ano}")
         for visao, depto, rf in linhas:
             app = rf.kpis["aderencia_atual"]

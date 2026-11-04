@@ -63,6 +63,12 @@
 #   docs/HISTORICO_PROJETO.md guardam a regra, as evidências e as decisões.
 # 4.1.1 (04/11/2026): investigação da Gerência registrada (não é média; 12 fórmulas
 #   testadas, nenhuma bate) e aviso no Resumo de que a Gerência é estimativa.
+# 4.2.0 (04/11/2026): Gerência pela regra do PCM (export consolidado data (10),
+#   19/19 metas): meta pesa Σ Peso Redist das coordenações; metas "Tipo de medição
+#   = DEPTO" somam o volume de todas as coordenações (com teto no plano somado),
+#   ATIVO somam o realizado limitado de cada uma; ÷ nº de coordenações. Tipo de
+#   medição lido do export de pesos (config metas_medicao_depto). Conferência:
+#   Gerência 1º–3º tri a ≤0,5 p.p. do Power BI.
 
-APP_VERSION = "4.1.1"
+APP_VERSION = "4.2.0"
 APP_NOME = "Plano VP"

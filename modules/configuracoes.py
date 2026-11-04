@@ -170,6 +170,9 @@ def _aba_parametros():
         rot = st.text_input("Nome da visão consolidada", cfg.get("rotulo_gerencia", "Gerência"))
         fora = st.text_input("Grupos fora da aderência (;)", cfg.get("grupos_fora_aderencia", "Saneamento Vegetal;Drenagem"),
                              help="Metas desses grupos não pesam na curva da Via (regra do PCM).")
+        depto = st.text_area("Metas com Tipo de medição = DEPTO (;)", cfg.get("metas_medicao_depto", ""), height=80,
+                             help="Na Gerência, essas metas somam o volume de todas as coordenações (a sobra de "
+                                  "uma cobre a falta de outra). Preenchido sozinho ao importar o export de pesos.")
         st.markdown("**Curva financeira (OPEX)** — arquivo na pasta do app")
         c5, c6 = st.columns(2)
         orc = c5.text_input("Arquivo de orçamento", cfg.get("arquivo_orcamento", ""))
@@ -182,7 +185,8 @@ def _aba_parametros():
             st.error("As faixas precisam estar em ordem: leve ≤ risco ≤ alto.")
         else:
             q.salvar_config({"meta_aderencia": meta, "faixa_leve": leve, "faixa_risco": risco,
-                             "faixa_critico": crit, "rotulo_gerencia": rot, "grupos_fora_aderencia": fora, "arquivo_orcamento": orc,
+                             "faixa_critico": crit, "rotulo_gerencia": rot, "grupos_fora_aderencia": fora,
+                             "metas_medicao_depto": ";".join(sorted({m.strip().upper() for m in depto.split(";") if m.strip()})), "arquivo_orcamento": orc,
                              "aba_plan_orc": aba, "env.pacotes_incluir": pac, "env.centros_custo": ccs},
                             get_login())
             _ok("Parâmetros salvos.")

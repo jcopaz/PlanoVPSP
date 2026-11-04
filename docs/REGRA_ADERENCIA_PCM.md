@@ -19,6 +19,13 @@ Aderência da coordenação = Σ_meta  Peso Item Redist × min(Realizado, Plano 
 É a métrica **"Adr_Ativo"** do painel Power BI do PCM. Conferida nos 4 trimestres de 2026:
 **11 de 12 coordenações dentro de 0,5 p.p.** (a 12ª é o 4º tri em andamento — seção 6).
 
+A **Gerência** tem regra própria (seção 3.7) — **não é a média das coordenações**:
+```
+Gerência = Σ_meta [ Σ_coord Peso Item Redist ] × Realizado_Ger ÷ Σ_coord Plano   ÷  nº de coordenações
+  Realizado_Ger = metas DEPTO: min(Σ volume de TODAS as coordenações, Σ plano)   (sobra cobre falta)
+                  metas ATIVO: Σ realizado já limitado em cada coordenação          (sem compensação)
+```
+
 ---
 
 ## 2. De onde vêm os dados (exports do Power BI do PCM)
@@ -77,6 +84,24 @@ Pegadinhas dos exports:
 - Linhas **sem Descrição Meta** (ordens fora do catálogo do plano, ~12,9 mil em 2026) ficam de fora por
   padrão — não pesam na curva (opção na tela de upload para incluí-las).
 
+### 3.7 Gerência (visão consolidada)
+- Fonte da regra: export do Power BI **sem a coluna Departamento** (`data (10).xlsx`, 1º tri/2026, filtro
+  Coordenação = SP.IPA, SP.IPG, SP.PJU) — uma linha por meta. Conferência: **19 de 19 metas** batem com:
+  - **Plano da Gerência** = Σ plano das coordenações;
+  - **Peso da meta na Gerência** = Σ `Peso Item Redist` das coordenações que têm a meta (Σ de tudo = nº de
+    coordenações);
+  - **Tipo de medição** (coluna do export, por meta): **DEPTO** → realizado = **volume somado de todas as
+    coordenações, inclusive as que não têm plano da meta**, limitado ao plano somado; **ATIVO** → Σ do
+    `Real Ativo` de cada coordenação (já limitado nela);
+  - **Pontuação da meta** = peso × realizado ÷ plano (somados); **Gerência = Σ pontuações ÷ nº de coordenações**.
+- Exemplos (1º tri): Correção de Bitola (DEPTO) teve 87 de 324 em ativo mas 386 em volume → conta 100%;
+  Dormentes Vigotas (ATIVO) = 0,4489 × 145/151 = 0,4311 (≠ soma das pontuações das coordenações, 0,4418).
+- Efeito: a Gerência pode ficar bem **acima da média** — 4º tri/2026 com dados oficiais: média 11,50%,
+  Gerência 21,83% (Dormentes Vigotas pesa 0,454 = IPA 0,084 + PJU 0,370 e o IPA já fez 28 de 49).
+- No app: `core/fisico.py::_peso_realizado_limitado(..., gerencia=True)`; a lista de metas DEPTO fica na
+  config `metas_medicao_depto`, gravada sozinha ao importar o export de pesos
+  (`importar_pcm.tipos_de_medicao` / `atualizar_metas_depto`), editável em Configurações → Parâmetros.
+
 ---
 
 ## 4. Visões e como cada uma é calculada
@@ -85,7 +110,7 @@ Pegadinhas dos exports:
 |---|---|---|---|
 | **Coordenação** | Dashboard → Resumo/Por Coordenação | Σ peso × aderência da meta (seção 1), metas do Depto | ✅ **validada** contra o Power BI |
 | **Material / meta** | tabela "Atividades" | `Aderência PCM` = realizado com teto ÷ plano; `Peso na Visão`; `Contribuição` = peso × aderência. **Σ Contribuição = aderência da visão** | ✅ consistente com a coordenação |
-| **Gerência** | Resumo/Gerencial | **média simples das coordenações** que "entram na Gerência" (Configurações → Coordenações) | ⚠️ **premissa não validada** (seção 6) |
+| **Gerência** | Resumo/Gerencial | regra própria do PCM (seção 3.7): meta pesa Σ pesos das coordenações; DEPTO soma volume, ATIVO soma realizado limitado; ÷ nº de coordenações | ✅ **validada** (19/19 metas no `data (10)`; 1º–3º tri a ≤0,5 p.p.) |
 | **Disciplina** (V / E / I) | — | o app hoje trata **só a Via (V.SP)** | ❌ **não coberta** (seção 6) |
 | **Evolução** (trimestre / ano) | Evolução | trimestre = aderência no fim (ou acumulada até a última semana); ano = média dos trimestres | ⚠️ ano = premissa |
 
@@ -110,12 +135,20 @@ Pegadinhas dos exports:
 | G — exceto "datas divergentes" | 9/12 | descartada |
 
 6. O 2º tri só bateu ao tirar **Saneamento/Drenagem**; 1º e 3º só bateram ao atribuir pelo **ativo** (GOEV).
+7. **Gerência**: média, média ponderada, "método do peso normalizado ÷ 3" (= média), conjunto único,
+   junção V+E+I — **13 fórmulas sem fechar**. Fechou com o export consolidado (`data (10)`): peso = Σ Redist,
+   DEPTO por volume somado (incluindo coordenação sem plano — o primeiro teste deu 98,71% por filtrar só
+   coordenações com plano), ATIVO por Real Ativo somado → 99,41% = export, 19/19 metas.
 
 ---
 
 ## 6. Validação, premissas e pontos em aberto
 
-**Números de referência (Power BI, Adr_Ativo, extraídos em 04/11/2026)** — também em
+**Gerência (Power BI × app):** 1º tri 99,62 / 99,80 · 2º tri 99,35 / 99,62 · 3º tri 97,91 / 98,37
+(regra sobre os dados oficiais do PCM: 99,41 = `data (10)` · 99,20 · 98,18 — a sobra é data de extração
+e realizado reconstruído).
+
+**Números de referência das coordenações (Power BI, Adr_Ativo, extraídos em 04/11/2026)** — também em
 `dados/referencia_pcm_2026.csv` (fora do Git):
 
 | Trimestre | IPA (PCM / app) | IPG (PCM / app) | PJU (PCM / app) |
@@ -128,7 +161,8 @@ Pegadinhas dos exports:
 \* trimestre em andamento: o Realizado foi exportado depois do print; diferença esperada.
 
 **Premissas ainda NÃO validadas com o PCM:**
-- **Gerência — o app usa a média simples das coordenações, mas NÃO é a regra do PCM.**
+- **Gerência — RESOLVIDO em 04/11/2026 (v4.2.0), ver seção 3.7.** Histórico da investigação abaixo.
+  Antes o app usava a média simples das coordenações, que NÃO é a regra do PCM.
   Power BI (Gerência SP, Adr_Ativo): **1º tri 99,62% · 2º tri 99,35% · 3º tri 97,91%**. Investigação de
   04/11/2026 (`12 fórmulas testadas`), nenhuma bate nos 3 trimestres:
 

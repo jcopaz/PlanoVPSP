@@ -293,6 +293,26 @@ def catalogo_peso_inicial(arquivo_pesos, deptos: set[str]) -> pd.DataFrame:
 RESPONSAVEIS_EXTRA_VIA = {"GOEV"}
 
 
+def tipos_de_medicao(arquivo_pesos) -> dict[str, str]:
+    """{Descrição Meta: "DEPTO" | "ATIVO"} do export de pesos (coluna "Tipo de medição")."""
+    bruto = pd.read_excel(arquivo_pesos, header=None)
+    df = pd.read_excel(arquivo_pesos, header=_acha_cabecalho(bruto))
+    df.columns = pd.Index(df.columns).astype(str).str.strip()
+    if "Tipo de medição" not in df.columns:
+        return {}
+    df = df[df["Descrição Meta"].notna() & df["Tipo de medição"].notna()]
+    return dict(zip(df["Descrição Meta"].astype(str).str.strip().str.upper(),
+                    df["Tipo de medição"].astype(str).str.strip().str.upper()))
+
+
+def atualizar_metas_depto(atual: str, tipos: dict[str, str]) -> str:
+    """Junta o que veio no export com o que já estava configurado (o export manda)."""
+    metas = {m.strip().upper() for m in (atual or "").split(";") if m.strip()}
+    metas |= {m for m, t in tipos.items() if t == "DEPTO"}
+    metas -= {m for m, t in tipos.items() if t == "ATIVO"}
+    return ";".join(sorted(metas))
+
+
 def ler_realizado(arquivo, deptos: set[str], com_sem_meta: bool = False) -> tuple[pd.DataFrame, int]:
     """Realizado do PCM no layout da aba Lancamentos + colunas _ano/_tri.
 

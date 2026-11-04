@@ -57,6 +57,16 @@ def _gravar(ano, tri, pesos, plano, lanc, trocar_plano: bool, trocar_lanc: bool)
     return f"✅ {tri}º tri/{ano}: " + " + ".join(partes) + (f" · {n_eq} equipe(s) nova(s)" if n_eq else "")
 
 
+def _gravar_tipos_medicao(arquivo_pesos) -> None:
+    """Tipo de medição (DEPTO/ATIVO) das metas -> config metas_medicao_depto (regra da Gerência)."""
+    tipos = importar_pcm.tipos_de_medicao(arquivo_pesos)
+    if tipos:
+        cfg, _, _, _ = comum.cadastros()
+        novo = importar_pcm.atualizar_metas_depto(cfg.get("metas_medicao_depto", ""), tipos)
+        if novo != cfg.get("metas_medicao_depto", ""):
+            q.salvar_config({"metas_medicao_depto": novo}, get_login())
+
+
 def _ja_existe(ano, tri) -> dict | None:
     tri_df = comum.trimestres()
     m = tri_df[(tri_df["ano"] == ano) & (tri_df["trimestre"] == tri)] if not tri_df.empty else tri_df
@@ -124,6 +134,7 @@ def _upload_pcm():
         st.error("Nada para importar.")
         return
     if st.button("📥 Importar plano do PCM", type="primary"):
+        _gravar_tipos_medicao(cam_pesos)
         st.session_state["msg_dados"] = _gravar(r.ano, r.trimestre, pesos, plano, None, True, False)
         st.rerun()
 
@@ -184,6 +195,8 @@ def _upload_exports_historico(por_tipo: dict) -> None:
     st.caption("Para cada trimestre escolhido: o plano (se veio no Planejado) e os lançamentos são **substituídos** "
                "pelos do PCM — inclusive lançamentos feitos na tela de Lançamentos.")
     if st.button("📥 Importar do PCM", type="primary", disabled=not escolha):
+        if "pcm_pesos" in por_tipo:
+            _gravar_tipos_medicao(comum.salvar_temporario(por_tipo["pcm_pesos"]))
         msgs = []
         for (ano, tri), d in hist.items():
             if f"{tri}º tri/{ano}" in escolha:
