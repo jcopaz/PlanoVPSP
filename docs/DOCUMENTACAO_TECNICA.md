@@ -142,6 +142,13 @@ novas/alteradas são validadas (linha antiga intacta não bloqueia), calcula-se 
 (novos/alterados/excluídos) e grava numa transação com auditoria. Trimestre fechado =
 somente leitura (exceto admin).
 
+**Histórico pelos exports do PCM** — `importar_pcm.montar_historico`: Planejado (N trimestres,
+separados pela data) + Realizado (ordens SAP; trimestre = da Data Programada, igual à coluna
+Trimestre do PCM; `Considera Plano?` → No Plano; `Motivo de Perda` → Justificativa quando
+real < programado) + export de pesos. **Peso = Peso Item Inicial** (coluna F), fixo por meta: o PCM só o
+redistribui entre as metas com plano (conferido contra as planilhas do 1º e 3º tri/2026, 76/76).
+Realizado sem meta (fora do catálogo) e de trimestres sem plano (ordens 2023–2025) ficam de fora.
+
 **Histórico** — planilha antiga ou v3 → `planilha.ler` → trimestre deduzido pelas datas
 → substitui pesos/plano e/ou lançamentos. Lançamento antigo sem meta é guardado como
 `(SEM META)` (não pesa; aparece para correção).
@@ -190,6 +197,7 @@ python -c "from core import config,dados,fisico; p=config.carregar(); p.cfg['arq
 | 03/11/2026 | SQLite local + Neon em produção, mesma camada SQLAlchemy | começar já sem servidor; publicar só trocando a URL |
 | 03/11/2026 | SLA por Depto × Meta em cadastro próprio | "produção esperada da equipe", configurada 1 vez por coordenação |
 | 03/11/2026 | Hospedagem no Hugging Face Spaces (Docker + sync pelo GitHub Actions) | Streamlit Cloud perdia ~15% das requisições; Render free compartilha 750 h com o Gestão_OS |
+| 04/11/2026 | Histórico pelos exports Planejado/Realizado do PCM; peso = Peso Item Inicial | dispensa a planilha dos programadores; Peso Inicial é fixo por meta |
 | 03/11/2026 | Janela de semanas automática pelo calendário (4º tri/2026 = 40–53) | 2026 tem semana 53 com plano |
 
 ## 9. Pendências / roadmap

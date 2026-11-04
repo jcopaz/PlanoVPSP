@@ -45,6 +45,11 @@
 # 3.1.2 (04/11/2026): desempenho — versão dos dados em cache de 10 s e usuário
 #   logado em cache de 60 s; navegação passa de 8–26 consultas por clique (1–7 s,
 #   app nos EUA x Neon em SP) para 0; troca de senha limpa o cache do usuário.
+# 3.2.0 (04/11/2026): histórico direto dos exports do Power BI do PCM — o upload
+#   "Planilha de trimestre" aceita vários arquivos: Planejado (1..N trimestres),
+#   Realizado (ordens SAP: Qtd. Real, Considera Plano?, Motivo de Perda) e o export
+#   de pesos (Peso Item Inicial, fixo por meta — reproduz os pesos do 1º e 3º tri,
+#   76/76). Leitor da planilha antiga usa só dados digitados (lê a do 1º tri).
 
-APP_VERSION = "3.1.2"
+APP_VERSION = "3.2.0"
 APP_NOME = "Plano VP"

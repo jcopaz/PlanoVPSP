@@ -75,8 +75,12 @@ quanto precisa render por semana daqui em diante para fechar 100%.
 - **Exportação** (todos): baixa a planilha do trimestre no mesmo modelo do Excel (Pesos, Plano_PCM,
   Lancamentos, Listas) — serve de backup e pode ser reenviada. O **backup completo** (.zip) traz
   todos os trimestres e os cadastros. Recomendado: gerar ao fechar cada trimestre.
-- **Upload → Planilha de trimestre** (PCM/admin): carrega trimestres passados (planilha antiga com
-  Diário, modelo v3 ou backup). Escolha o que gravar (Pesos+Plano e/ou Lançamentos); o que estiver
+- **Upload → Planilha de trimestre** (PCM/admin): carrega trimestres passados. Aceita **vários arquivos
+  juntos**: os exports do Power BI do PCM — **Planejado** (congelado, 1 ou mais trimestres), **Realizado**
+  (o que os programadores lançaram no sistema) e o **export de pesos** (ex.: `data (9).xlsx`) — ou uma
+  planilha antiga (Diário), modelo v3 ou backup. Antes de gravar aparece uma prévia por trimestre; o
+  plano e os lançamentos de cada trimestre escolhido são **substituídos** pelos do PCM.
+  Ordens sem Descrição Meta (fora do catálogo do plano) ficam de fora por padrão. Escolha o que gravar (Pesos+Plano e/ou Lançamentos); o que estiver
   marcado **substitui** o que existe naquele trimestre.
 
 ## Fechar um trimestre

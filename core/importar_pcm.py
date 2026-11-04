@@ -18,7 +18,18 @@ Dois arquivos do PCM (aba única "Export", rodapé "Filtros aplicados: ... Tri/A
    -> aba Plano_PCM (curva Meta PCM). Sem ele, o Plano Trimestral de cada meta é
       dividido igualmente pelas semanas (curva linear).
 
-Só entram os Deptos cadastrados no parametros.xlsx (aba Coordenacoes).
+3. **Realizado** (ex.: ``Realizado 1 ao 4º Tri.xlsx``) - ordens do SAP lançadas
+   pelos programadores (Data Programada, Qtd. Programada, Qtd. Real, Considera
+   Plano?, Motivo de Perda...) -> aba Lancamentos, separado por trimestre da
+   Data Programada. Dispensa a planilha dos programadores.
+
+Histórico (vários trimestres de uma vez): montar_historico() junta Planejado
+(1 a N trimestres) + Realizado + o export de pesos. O **Peso Item Inicial**
+(coluna F) é fixo por meta — o PCM só o redistribui entre as metas com plano
+(conferido: reproduz os pesos das planilhas do 1º e do 3º tri/2026, 76/76) —
+então um único export de pesos serve para todos os trimestres.
+
+Só entram os Deptos cadastrados nas Coordenações.
 """
 from __future__ import annotations
 
@@ -238,3 +249,121 @@ def importar(arquivo_export, p: config.Parametros, catalogo: pd.DataFrame | None
                             "Observação": "Plano trimestral ÷ semanas (sem Planejamento PCM)"})
     r.plano.sort(key=lambda ln: (ln["Data Planejada"], ln["Depto"], ln["Descrição Meta"]))
     return r
+
+
+# --------------------------------------------------------------------------- #
+# Histórico: Planejado (N trimestres) + Realizado + catálogo de pesos
+# --------------------------------------------------------------------------- #
+DE_PARA_REALIZADO = {
+    "Centro de trabalho responsável": "Depto",
+    "Data Programada": "Data",
+    "Descrição Meta": "Descrição Meta",
+    "Nº do material / Nº do serviço": "Nº Material",
+    "Equipe/Equipamento": "Equipe",
+    "Local instalação": "Ativo",
+    "Qtd. Programada": "Quantidade Programada",
+    "Qtd. Real": "Quantidade Realizada",
+    "Considera Plano?": "No Plano",
+}
+
+
+def _txt(v) -> str:
+    return "" if pd.isna(v) else str(v).removesuffix(".0")
+
+
+def catalogo_peso_inicial(arquivo_pesos, deptos: set[str]) -> pd.DataFrame:
+    """Depto, Grupo, Descrição Meta, Peso (= Peso Item Inicial) de TODAS as metas
+    do export de pesos — inclusive as sem plano no trimestre do export."""
+    bruto = pd.read_excel(arquivo_pesos, header=None)
+    df = pd.read_excel(arquivo_pesos, header=_acha_cabecalho(bruto))
+    df.columns = pd.Index(df.columns).astype(str).str.strip()
+    if "Peso Item Inicial" not in df.columns:
+        raise ValueError("Export de pesos sem a coluna 'Peso Item Inicial'.")
+    hier = [c for c in COLS_HIERARQUIA if c in df.columns]
+    df[hier] = df[hier].ffill()
+    df = df[df["Descrição Meta"].notna()].copy()
+    df["Depto"] = df["Departamento"].astype(str).str.strip().str.upper()
+    df["Descrição Meta"] = df["Descrição Meta"].astype(str).str.strip().str.upper()
+    df["Peso"] = pd.to_numeric(df["Peso Item Inicial"], errors="coerce").fillna(0.0)
+    df = df[df["Depto"].isin(deptos) & (df["Descrição Meta"] != "")]
+    df = df.rename(columns={"GRUPO": "Grupo"})
+    return df.reindex(columns=["Depto", "Grupo", "Descrição Meta", "Peso"]).drop_duplicates(["Depto", "Descrição Meta"])
+
+
+def ler_realizado(arquivo, deptos: set[str], com_sem_meta: bool = False) -> tuple[pd.DataFrame, int]:
+    """Realizado do PCM no layout da aba Lancamentos + colunas _ano/_tri.
+    Devolve (lancamentos, n_linhas_sem_meta_ignoradas)."""
+    bruto = pd.read_excel(arquivo, header=None, nrows=15)
+    r = pd.read_excel(arquivo, header=_acha_cabecalho(bruto))
+    r.columns = pd.Index(r.columns).astype(str).str.strip()
+    faltam = [c for c in ("Centro de trabalho responsável", "Data Programada", "Descrição Meta", "Qtd. Real",
+                          "Considera Plano?") if c not in r.columns]
+    if faltam:
+        raise ValueError(f"Colunas ausentes no Realizado do PCM: {faltam}")
+    r["Data Programada"] = pd.to_datetime(r["Data Programada"], errors="coerce")
+    r = r[r["Data Programada"].notna()].copy()                       # tira o rodapé de filtros
+    r["Centro de trabalho responsável"] = r["Centro de trabalho responsável"].astype(str).str.strip().str.upper()
+    r = r[r["Centro de trabalho responsável"].isin(deptos)]
+    meta = r["Descrição Meta"].fillna("").astype(str).str.strip()
+    n_sem_meta = int((meta == "").sum())
+    if not com_sem_meta:
+        r = r[meta != ""]
+
+    out = r.reindex(columns=list(DE_PARA_REALIZADO)).rename(columns=DE_PARA_REALIZADO)
+    out["Descrição Meta"] = out["Descrição Meta"].fillna("").astype(str).str.strip().str.upper()
+    prog = pd.to_numeric(out["Quantidade Programada"], errors="coerce")
+    real = pd.to_numeric(out["Quantidade Realizada"], errors="coerce")
+    motivo = r["Motivo de Perda"] if "Motivo de Perda" in r.columns else pd.Series(None, index=r.index)
+    out["Justificativa"] = motivo.where(~(real >= prog))           # mantém se real < prog ou se faltou quantidade
+    out["Quantidade Programada"], out["Quantidade Realizada"] = prog.fillna(0.0), real.fillna(0.0)
+    km_i = pd.to_numeric(r.get("Km início"), errors="coerce").fillna(0)
+    km_f = pd.to_numeric(r.get("Km Fim"), errors="coerce").fillna(0)
+    out["Observação"] = [
+        f"Ordem {_txt(o)}/{_txt(op)} · {_txt(st)}" + (f" · KM {a:g}-{b:g}" if (a or b) else "")
+        for o, op, st, a, b in zip(r.get("Nº ordem"), r.get("Nº operação"), r.get("Status atual da ordem"), km_i, km_f)]
+    out["Programador"] = "PCM (SAP)"
+    out["_ano"] = r["Data Programada"].dt.year.values
+    out["_tri"] = r["Data Programada"].dt.quarter.values
+    return out.reset_index(drop=True), n_sem_meta
+
+
+def montar_historico(deptos: set[str], arquivo_planejado=None, arquivo_realizado=None, arquivo_pesos=None,
+                     com_sem_meta: bool = False, trimestres_com_plano: set[tuple[int, int]] = frozenset()
+                     ) -> tuple[dict[tuple[int, int], dict], list[str]]:
+    """{(ano, tri): {"pesos", "plano", "lanc"}} a partir dos exports do PCM.
+    pesos/plano só existem para os trimestres presentes no Planejado. Realizado de
+    trimestre sem plano (nem no Planejado nem em ``trimestres_com_plano``, os que já
+    estão no banco) é ignorado — ex.: ordens de 2023–2025 confirmadas em 2026."""
+    avisos: list[str] = []
+    saida: dict[tuple[int, int], dict] = {}
+    if arquivo_planejado is not None:
+        if arquivo_pesos is None:
+            raise ValueError("Para gravar o Planejado envie também o export de pesos (ex.: data (9).xlsx): "
+                             "ele traz o Peso Item Inicial usado em todos os trimestres.")
+        cat = catalogo_peso_inicial(arquivo_pesos, deptos)
+        pl, _ = ler_planejamento(arquivo_planejado, deptos)
+        datas = pd.to_datetime(pl["Data Planejada"])
+        for (ano, tri), g in pl.groupby([datas.dt.year, datas.dt.quarter]):
+            usadas = g.groupby(["Depto", "Descrição Meta"])["Quantidade Programada"].sum()
+            usadas = usadas[usadas > 0].reset_index()[["Depto", "Descrição Meta"]]
+            pesos = usadas.merge(cat, on=["Depto", "Descrição Meta"], how="left")
+            sem = pesos[pesos["Peso"].isna()]
+            if len(sem):
+                avisos.append(f"{tri}º tri/{ano}: {len(sem)} meta(s) do plano sem Peso Item Inicial no export de "
+                              f"pesos (não pesam na curva): " + "; ".join((sem["Depto"] + "|" + sem["Descrição Meta"]).head(5)))
+            saida[(int(ano), int(tri))] = {"pesos": pesos.fillna({"Peso": 0.0}), "plano": g.reset_index(drop=True)}
+    if arquivo_realizado is not None:
+        lanc, n_sem_meta = ler_realizado(arquivo_realizado, deptos, com_sem_meta)
+        if n_sem_meta and not com_sem_meta:
+            avisos.append(f"{n_sem_meta} linha(s) do Realizado sem Descrição Meta (ordens fora do catálogo do plano) "
+                          f"ficaram de fora — não pesam na curva.")
+        validos = set(saida) | set(trimestres_com_plano)
+        fora = 0
+        for (ano, tri), g in lanc.groupby(["_ano", "_tri"]):
+            if (int(ano), int(tri)) not in validos:
+                fora += len(g)
+                continue
+            saida.setdefault((int(ano), int(tri)), {})["lanc"] = g.drop(columns=["_ano", "_tri"]).reset_index(drop=True)
+        if fora:
+            avisos.append(f"{fora} linha(s) do Realizado em trimestres sem plano carregado (ordens antigas) ficaram de fora.")
+    return dict(sorted(saida.items())), avisos

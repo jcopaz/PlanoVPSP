@@ -21,7 +21,8 @@ from . import config, modelo
 
 # Nome canônico -> variações aceitas (minúsculas, sem espaços duplicados)
 MAPA_DIARIO = {
-    "Origem Programação": ["origem programação", "origem programacao", "origem", "tipo de programação"],
+    "Origem Programação": ["origem programação", "origem programacao", "origem promagramação", "origem",
+                           "tipo de programação"],
     "Depto": ["depto", "departamento"],
     "Chave Peso": ["chave peso", "chave_peso"],
     "Data Planejada": ["data planejada", "data_planejada", "data"],
@@ -29,7 +30,7 @@ MAPA_DIARIO = {
     "Coordenação": ["coordenação", "coordenacao", "coord"],
     "Equipe": ["equipe", "turma"],
     "Grupo": ["grupo"],
-    "Descrição Meta": ["descrição meta", "descricao meta", "descrição", "meta", "atividade"],
+    "Descrição Meta": ["descrição meta", "descricao meta", "descricaometa", "descrição", "meta", "atividade"],
     "Número do Material": ["número do material", "numero do material", "nº do material / nº do serviço",
                            "n° do material / n° do serviço", "cod material", "código do material"],
     "Peso Planejado Linha": ["peso planejado linha", "peso planejado"],

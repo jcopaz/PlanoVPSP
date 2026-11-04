@@ -13,6 +13,7 @@
 
 import io
 import os
+import tempfile
 import zipfile
 from datetime import datetime
 
@@ -127,17 +128,109 @@ def _upload_pcm():
         st.rerun()
 
 
+@st.cache_data(show_spinner="Lendo os exports do PCM...", max_entries=2)
+def _historico_pcm(planejado: bytes | None, realizado: bytes | None, pesos: bytes | None,
+                   deptos: tuple, com_sem_meta: bool, tri_com_plano: tuple):
+    with tempfile.TemporaryDirectory() as pasta:
+        def tmp(nome, conteudo):
+            if conteudo is None:
+                return None
+            caminho = os.path.join(pasta, nome)
+            with open(caminho, "wb") as f:
+                f.write(conteudo)
+            return caminho
+        return importar_pcm.montar_historico(set(deptos), tmp("planejado.xlsx", planejado),
+                                             tmp("realizado.xlsx", realizado), tmp("pesos.xlsx", pesos),
+                                             com_sem_meta, set(tri_com_plano))
+
+
+def _upload_exports_historico(por_tipo: dict) -> None:
+    """Planejado (N trimestres) + Realizado + export de pesos do Power BI do PCM."""
+    st.caption("Exports do PCM reconhecidos: " + ", ".join(
+        f"**{rot}**" for tipo, rot in (("pcm_planejamento", "Planejado"), ("pcm_realizado", "Realizado"),
+                                      ("pcm_pesos", "Pesos")) if tipo in por_tipo))
+    if "pcm_planejamento" in por_tipo and "pcm_pesos" not in por_tipo:
+        st.error("Envie também o **export de pesos** (ex.: `data (9).xlsx`): ele traz o *Peso Item Inicial*, "
+                 "o mesmo para todos os trimestres.")
+        return
+    com_sem_meta = st.checkbox("Incluir ordens sem Descrição Meta (fora do catálogo do plano — não pesam na curva)")
+    tri_df = comum.trimestres()
+    com_plano = tuple((int(a), int(t)) for a, t, n in
+                      zip(tri_df.get("ano", []), tri_df.get("trimestre", []), tri_df.get("linhas_plano", [])) if n > 0)
+    try:
+        hist, avisos = _historico_pcm(*(por_tipo[k].getvalue() if k in por_tipo else None
+                                        for k in ("pcm_planejamento", "pcm_realizado", "pcm_pesos")),
+                                      tuple(comum.deptos_cadastrados()), com_sem_meta, com_plano)
+    except Exception as e:  # noqa: BLE001
+        st.error(f"Não foi possível ler os exports: {e}")
+        return
+    for a in avisos:
+        st.warning(a)
+    if not hist:
+        st.error("Nada para importar.")
+        return
+    linhas = []
+    for (ano, tri), d in hist.items():
+        ex = _ja_existe(ano, tri)
+        lanc = d.get("lanc")
+        linhas.append({"Trimestre": f"{tri}º tri/{ano}",
+                       "Plano (linhas)": len(d["plano"]) if "plano" in d else "— mantém o atual",
+                       "Realizado (linhas)": len(lanc) if lanc is not None else "—",
+                       "Considera Plano = Sim": int((lanc["No Plano"] == "Sim").sum()) if lanc is not None else "—",
+                       "Hoje no sistema": (f"{ex['linhas_plano']} plano · {ex['lancamentos']} lanç." if ex else "novo")})
+    st.dataframe(pd.DataFrame(linhas), hide_index=True, width="stretch")
+    escolha = st.multiselect("Trimestres a gravar", [r["Trimestre"] for r in linhas],
+                             default=[r["Trimestre"] for r in linhas])
+    st.caption("Para cada trimestre escolhido: o plano (se veio no Planejado) e os lançamentos são **substituídos** "
+               "pelos do PCM — inclusive lançamentos feitos na tela de Lançamentos.")
+    if st.button("📥 Importar do PCM", type="primary", disabled=not escolha):
+        msgs = []
+        for (ano, tri), d in hist.items():
+            if f"{tri}º tri/{ano}" in escolha:
+                msgs.append(_gravar(ano, tri, d.get("pesos"), d.get("plano"), d.get("lanc"),
+                                    "plano" in d, "lanc" in d))
+        st.session_state["msg_dados"] = "  \n".join(msgs)
+        st.rerun()
+
+
 def _upload_planilha():
-    st.markdown("Planilha do trimestre no **modelo v3** (ou um backup exportado daqui) ou a **planilha antiga** "
-                "(Diário + Planilha de Peso). Use para carregar o **histórico** de trimestres passados.")
-    f = st.file_uploader("Planilha do trimestre", type=["xlsx", "xlsm"], key="up_planilha")
-    if not f:
+    st.markdown("Planilha do trimestre no **modelo v3** (ou um backup exportado daqui), a **planilha antiga** "
+                "(Diário + Planilha de Peso) **ou os exports do Power BI do PCM** — *Planejado* (congelado, 1 ou mais "
+                "trimestres), *Realizado* (ordens lançadas pelos programadores) e o *export de pesos*. Pode enviar "
+                "vários arquivos juntos.")
+    arquivos = st.file_uploader("Arquivos", type=["xlsx", "xlsm"], key="up_planilha", accept_multiple_files=True)
+    if not arquivos:
         return
     try:
+        tipados = [(f, planilha.identificar(comum.salvar_temporario(f))) for f in arquivos]
+    except Exception as e:  # noqa: BLE001
+        st.error(f"Não foi possível ler os arquivos: {e}")
+        return
+    contagem = pd.Series([t for _, t in tipados]).value_counts()
+    repetidos = [t for t, n in contagem.items() if n > 1 and t.startswith("pcm_")]
+    if repetidos:
+        st.error("Envie no máximo **um arquivo de cada tipo** do PCM (Planejado, Realizado, Pesos). Repetido: "
+                 + ", ".join(repetidos))
+        return
+    tipos = {f.name: t for f, t in tipados}
+    por_tipo = {t: f for f, t in tipados}
+    if {"pcm_planejamento", "pcm_realizado"} & set(por_tipo):
+        _upload_exports_historico(por_tipo)
+        return
+    desconhecidos = [f.name for f, t in tipados if t == "desconhecido"]
+    if desconhecidos:
+        st.error("Formato não reconhecido: " + ", ".join(desconhecidos))
+        return
+    if len(arquivos) > 1:
+        st.info("Planilha de trimestre (modelo v3 ou antiga): envie uma por vez.")
+        return
+    f = arquivos[0]
+    try:
         caminho = comum.salvar_temporario(f)
-        tipo = planilha.identificar(caminho)
-        if tipo in ("pcm_pesos", "pcm_planejamento"):
-            st.error("Este é um export do PCM: use a opção **Plano do trimestre (exports do PCM)**.")
+        tipo = tipados[0][1]
+        if tipo == "pcm_pesos":
+            st.error("Só o export de pesos: para o início de trimestre use **Plano do trimestre (exports do PCM)**; "
+                     "para histórico envie junto o *Planejado* e/ou o *Realizado*.")
             return
         pesos, plano, lanc = planilha.ler(caminho, config.carregar())
     except Exception as e:  # noqa: BLE001

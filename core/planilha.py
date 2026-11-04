@@ -201,7 +201,7 @@ def _cabecalho(arquivo, limite=15) -> set[str]:
 
 
 def identificar(arquivo) -> str:
-    """'v3' | 'legado' | 'pcm_pesos' | 'pcm_planejamento' | 'desconhecido'."""
+    """'v3' | 'legado' | 'pcm_pesos' | 'pcm_planejamento' | 'pcm_realizado' | 'desconhecido'."""
     with pd.ExcelFile(arquivo) as xls:
         nomes = [n.strip().lower() for n in xls.sheet_names]
         if M.eh_modelo(xls.sheet_names):
@@ -213,6 +213,8 @@ def identificar(arquivo) -> str:
         return "pcm_pesos"
     if "qtd. plano" in cab and "data" in cab:
         return "pcm_planejamento"
+    if "qtd. real" in cab and "considera plano?" in cab:
+        return "pcm_realizado"
     return "desconhecido"
 
 
@@ -228,24 +230,40 @@ def ler(arquivo, p: config.Parametros | None = None) -> tuple[pd.DataFrame, pd.D
 
 
 def legado_para_v3(arquivo, p: config.Parametros) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Planilha antiga (Diário + Planilha de Peso) -> DataFrames do modelo v3."""
-    p.cfg["arquivo_plano"] = arquivo
-    dia, peso, _ = dados.carregar_plano(p)
-    dia = dia.loc[:, ~dia.columns.duplicated()]       # o Diário antigo repete "Número do Material"
-    peso = peso.loc[:, ~peso.columns.duplicated()]
-    o_pcm = p.g("origem_pcm", str, "PCM")
+    """Planilha antiga (Diário + Planilha de Peso) -> DataFrames do modelo v3.
 
-    pe = peso.dropna(subset=["Chave Peso"]).copy()
-    partes = pe["Chave Peso"].astype(str).str.split("|", n=1, expand=True)
-    pesos = pd.DataFrame({"Depto": partes[0], "Grupo": pe.get("Grupo"), "Descrição Meta": partes[1],
-                          "Peso": pe.get("Peso Item"), "Unidade": pe.get("Unidade"), "SLA": pe.get("SLA")})
+    Usa só o que foi DIGITADO (Diário e Peso Item Redist); semana e pesos por linha
+    são recalculados pelo Python (dados.montar_canonico). Assim funciona nas três
+    versões de planilha de 2026 — inclusive a do 1º tri, que não tem as colunas de
+    fórmula — e não herda fórmula quebrada (ex.: JIC de 23/05 no 2º tri).
+    """
+    aba_dia, aba_peso = p.g("aba_diario", str, "Diário"), p.g("aba_peso", str, "Planilha de Peso")
+    bruto = pd.read_excel(arquivo, sheet_name=aba_dia, header=None, nrows=25)
+    dia = pd.read_excel(arquivo, sheet_name=aba_dia, header=dados._acha_linha_cabecalho(bruto))
+    dia.columns = dados._limpa_cols(dia.columns)
+    dia = dados._renomeia(dia, dados.MAPA_DIARIO)
+    dia = dia.loc[:, ~dia.columns.duplicated()]
+    if "Origem Programação" not in dia.columns:
+        raise ValueError(f"Diário sem a coluna de origem (PCM/Coordenação). Colunas: {list(dia.columns)}")
 
-    pcm = dia[dia["Origem Programação"] == o_pcm]
-    exe = dia[dia["Origem Programação"] != o_pcm]
+    bruto_p = pd.read_excel(arquivo, sheet_name=aba_peso, header=None, nrows=20)
+    hp = next((i for i, row in bruto_p.iterrows()
+               if any(str(v).strip().lower() in ("descrição meta", "descricao meta") for v in row.tolist())), 0)
+    pe = pd.read_excel(arquivo, sheet_name=aba_peso, header=hp)
+    pe.columns = dados._limpa_cols(pe.columns)
+    pe = pe.loc[:, ~pe.columns.duplicated()]
+    pe = pe[pe["Coordenação"].notna() & pe["Descrição Meta"].notna()]
 
     def col(df, nome):
         return df[nome] if nome in df.columns else pd.Series(None, index=df.index, dtype=object)
 
+    pesos = pd.DataFrame({"Depto": col(pe, "Coordenação"), "Grupo": col(pe, "Grupo"),
+                          "Descrição Meta": col(pe, "Descrição Meta"), "Peso": col(pe, "Peso Item Redist"),
+                          "Unidade": col(pe, "Unidade"), "SLA": col(pe, "SLA")})
+
+    origem = dia["Origem Programação"].astype(str).str.strip().str.upper()
+    pcm = dia[origem == p.g("origem_pcm", str, "PCM").upper()]
+    exe = dia[(origem != p.g("origem_pcm", str, "PCM").upper()) & dia["Origem Programação"].notna()]
     plano = pd.DataFrame({
         "Depto": col(pcm, "Depto"), "Data Planejada": col(pcm, "Data Planejada"),
         "Descrição Meta": col(pcm, "Descrição Meta"), "Nº Material": col(pcm, "Número do Material"),
