@@ -40,6 +40,8 @@
 #   sync-hf.yml que envia a main para o Space a cada push). Motivo: apps da conta
 #   no Streamlit Cloud perdiam ~15% das requisições (Sentinel também); Render
 #   gratuito descartado (750 h/mês já tomadas pela API do Gestão_OS).
+# 3.1.1 (03/11/2026): Hugging Face exige PRO em conta nova (cota cpu-basic = 0);
+#   hospedagem volta a ser o Streamlit Cloud. Workflow OIDC mantido para o PRO.
 
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.1.1"
 APP_NOME = "Plano VP"

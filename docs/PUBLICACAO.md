@@ -1,7 +1,13 @@
 # Plano VP — Publicação
 
-**Hospedagem atual: Hugging Face Spaces** (seção A). O Streamlit Community Cloud (seção B,
-antiga) foi deixado de lado em 03/11/2026: os apps da conta perdiam ~15% das requisições
+**Hospedagem atual: Streamlit Community Cloud** (seção B) — `https://planovpsp.streamlit.app`.
+
+> **Hugging Face (seção A) bloqueado em 03/11/2026:** conta nova tem cota *cpu-basic* = 0
+> ("Quota exceeded for flavor cpu-basic: limit=0"); Space Docker exige PRO (~US$ 9/mês) ou
+> crédito. Tudo está configurado (Dockerfile, workflow OIDC, Space `jcopaz/planovpsp`): assinando
+> o PRO, basta recriar a variável `HF_SPACE` no GitHub. Sem ela o workflow só avisa.
+
+Histórico da escolha — o Streamlit Community Cloud chegou a ser trocado em 03/11/2026: os apps da conta perdiam ~15% das requisições
 (erro "Failed to fetch dynamically imported module"), inclusive o Sentinel. O Render gratuito
 foi descartado porque as 750 h/mês da conta já são consumidas pela API do Gestão_OS (com
 keep-alive) — estourar suspende TODOS os serviços gratuitos, inclusive ela.
