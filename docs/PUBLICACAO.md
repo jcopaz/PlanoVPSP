@@ -22,11 +22,11 @@ código para o Space (sem as planilhas .xlsx) e o Hugging Face reconstrói a ima
 3. **Secret do banco**: no Space → *Settings* → *Variables and secrets* → **New secret**
    - Name: `PLANO_DB_URL`
    - Value: a connection string do Neon (`postgresql://...?sslmode=require`), **sem aspas**
-4. **Token**: https://huggingface.co/settings/tokens → *Create new token* → tipo **Write**
-   (ou *Fine-grained* com escrita só no Space `plano-vp`) → copie o token (`hf_...`).
-5. **GitHub** (`jcopaz/PlanoVPSP` → *Settings* → *Secrets and variables* → *Actions*):
-   - aba **Secrets** → *New repository secret*: `HF_TOKEN` = o token do passo 4
-   - aba **Variables** → *New repository variable*: `HF_SPACE` = `SEU_USUARIO/plano-vp`
+4. **Trusted Publisher** (sem token guardado): no Space → *Settings* → *Trusted Publishers* →
+   Provider **GitHub Actions** · Repository **`jcopaz/PlanoVPSP`** (sem `https://github.com/`) ·
+   Branch **`main`** · Workflow **`sync-hf.yml`** · Read-only **desmarcado** → *Add publisher*.
+5. **GitHub** (`jcopaz/PlanoVPSP` → *Settings* → *Secrets and variables* → *Actions* → aba
+   **Variables**) → *New repository variable*: `HF_SPACE` = `SEU_USUARIO/plano-vp`.
 6. **Primeiro envio**: GitHub → *Actions* → **Sync Hugging Face Space** → *Run workflow*.
    Depois disso, cada push na `main` atualiza o Space sozinho.
 7. **Build**: no Space, aba *Logs*, aguarde *Running* (3–6 min na 1ª vez).
@@ -38,7 +38,7 @@ Observações:
 - **Financeiro (OPEX)**: o orçamento (.xlsx) não vai para o Space público; a aba mostra
   "orçamento não carregado" até o orçamento ser levado para o banco (roadmap).
 - **Atualizar o app**: só `git push` na `main` (acompanhe em GitHub → Actions e na aba
-  *Logs* do Space). Se o workflow avisar "HF_TOKEN/HF_SPACE não configurados", revise o passo 5.
+  *Logs* do Space). Se o workflow avisar "HF_SPACE não configurada", revise o passo 5; se der "Troca OIDC recusada", revise o passo 4.
 
 ---
 

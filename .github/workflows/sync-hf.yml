@@ -1,13 +1,18 @@
 # Envia a main para o Hugging Face Space a cada push (deploy do Plano VP).
-# Configuração (GitHub → Settings → Secrets and variables → Actions):
-#   secret   HF_TOKEN  = token de escrita do Hugging Face
-#   variable HF_SPACE  = usuario/nome-do-space (ex.: jcopaz/plano-vp)
-# Sem os dois, o job só avisa e termina sem erro.
+# Autenticação por Trusted Publisher (OIDC): sem token guardado. No Space →
+# Settings → Trusted Publishers: GitHub Actions, repository jcopaz/PlanoVPSP,
+# branch main, workflow sync-hf.yml. No GitHub → Settings → Secrets and
+# variables → Actions → Variables: HF_SPACE = usuario/nome-do-space.
+# Sem HF_SPACE, o job só avisa e termina sem erro.
 name: Sync Hugging Face Space
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  id-token: write   # pedir o token OIDC do GitHub
+  contents: read
 
 jobs:
   sync:
@@ -16,14 +21,25 @@ jobs:
       - uses: actions/checkout@v4
       - name: Monta e envia para o Space
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE: ${{ vars.HF_SPACE }}
         run: |
           set -e
-          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE" ]; then
-            echo "::warning::HF_TOKEN/HF_SPACE não configurados — deploy no Hugging Face ignorado."
+          if [ -z "$HF_SPACE" ]; then
+            echo "::warning::Variável HF_SPACE não configurada — deploy no Hugging Face ignorado."
             exit 0
           fi
+          # 1. Token OIDC do GitHub (audience do Hugging Face) -> token do HF válido 1 h, só para este Space
+          ID_TOKEN=$(curl -sf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://huggingface.co" | jq -r .value)
+          HF_TOKEN=$(curl -sf -X POST https://huggingface.co/oauth/token -H "Content-Type: application/json" \
+            -d "{\"grant_type\":\"urn:ietf:params:oauth:grant-type:token-exchange\",\"subject_token_type\":\"urn:ietf:params:oauth:token-type:id_token\",\"subject_token\":\"$ID_TOKEN\",\"resource\":\"spaces/$HF_SPACE\"}" \
+            | jq -r .access_token)
+          if [ -z "$HF_TOKEN" ] || [ "$HF_TOKEN" = "null" ]; then
+            echo "::error::Troca OIDC recusada pelo Hugging Face — confira o Trusted Publisher do Space (repository jcopaz/PlanoVPSP, branch main, workflow sync-hf.yml)."
+            exit 1
+          fi
+          echo "::add-mask::$HF_TOKEN"
+          # 2. Monta o conteúdo do Space
           rm -rf .git diagnostico
           cp deploy/hf/README.md README.md
           # O Hugging Face recusa binários sem LFS e o Space é público: nada de planilha/dado
@@ -34,7 +50,7 @@ jobs:
           git config user.name "github-actions"
           git add -A
           git commit -q -m "deploy ${GITHUB_SHA::7}"
-          # Token em cabeçalho mascarado (não na URL, que pode aparecer em mensagem de erro).
+          # 3. Envia (token em cabeçalho mascarado, não na URL)
           AUTH=$(printf 'user:%s' "$HF_TOKEN" | base64 -w0)
           echo "::add-mask::$AUTH"
           git -c http.extraHeader="Authorization: Basic $AUTH" push -f "https://huggingface.co/spaces/${HF_SPACE}" main
