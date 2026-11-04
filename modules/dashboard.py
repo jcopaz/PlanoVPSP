@@ -100,7 +100,9 @@ def _aba_resumo(r: motor.ResultadoTrimestre) -> None:
     _quadro_resumo(r)
     st.caption(f"Regra oficial do PCM (Adr_Ativo). {r.rotulo_gerencia}: cada meta pesa a soma dos pesos das "
                "coordenações; metas medidas por Depto somam o volume de todas (a sobra de uma cobre a falta de "
-               "outra) — por isso não é a média das coordenações (docs/REGRA_ADERENCIA_PCM.md §3.7).")
+               "outra) — por isso não é a média das coordenações. Pode haver pequena variação em relação ao "
+               "Power BI (até ~0,5 p.p. nos trimestres conferidos), por diferença de data de extração e do "
+               "realizado importado (docs/REGRA_ADERENCIA_PCM.md §3.7).")
 
     tab = r.gerencia.tabela_itens.copy()
     if not tab.empty and "Peso Realizado" in tab.columns:

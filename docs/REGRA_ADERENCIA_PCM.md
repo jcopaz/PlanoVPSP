@@ -85,6 +85,12 @@ Pegadinhas dos exports:
   padrão — não pesam na curva (opção na tela de upload para incluí-las).
 
 ### 3.7 Gerência (visão consolidada)
+> **Variação aceita (decisão do usuário, 04/11/2026):** diferenças de até ~1 p.p. entre o app e o Power BI
+> são aceitáveis e ficam avisadas no painel (Resumo). Conferido: 1º–3º tri a ≤0,5 p.p. A **média** das
+> coordenações também ficaria a <1 p.p. nos trimestres fechados, mas **não** no trimestre em andamento
+> (4º tri/2026: média 12,7% × regra do PCM 23,6% / 21,8% nos dados oficiais) — por isso a regra do PCM
+> continua sendo a usada.
+
 - Fonte da regra: export do Power BI **sem a coluna Departamento** (`data (10).xlsx`, 1º tri/2026, filtro
   Coordenação = SP.IPA, SP.IPG, SP.PJU) — uma linha por meta. Conferência: **19 de 19 metas** batem com:
   - **Plano da Gerência** = Σ plano das coordenações;

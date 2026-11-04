@@ -69,6 +69,8 @@
 #   ATIVO somam o realizado limitado de cada uma; ÷ nº de coordenações. Tipo de
 #   medição lido do export de pesos (config metas_medicao_depto). Conferência:
 #   Gerência 1º–3º tri a ≤0,5 p.p. do Power BI.
+# 4.2.1 (04/11/2026): aviso no Resumo de que pode haver pequena variação (até ~0,5 p.p.)
+#   em relação ao Power BI; decisão registrada (variação <1 p.p. aceita).
 
-APP_VERSION = "4.2.0"
+APP_VERSION = "4.2.1"
 APP_NOME = "Plano VP"
