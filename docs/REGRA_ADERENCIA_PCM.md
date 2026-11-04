@@ -144,6 +144,11 @@ Pegadinhas dos exports:
   Conclusões: (a) a Gerência **não** é combinação dos 3 números de coordenação (no 1º tri o peso de IPG
   teria de ser ~0); (b) o caminho "peso por atividade, somando as coordenações" (descrição do usuário) é
   o mais próximo — falta um detalhe; (c) o Power BI tem visão própria `Tipo_Visao = Gerencia` (rodapé).
+  (d) **Método do usuário (04/11/2026)** — peso por unidade = Redist ÷ Plano; ÷ 3 coordenações =
+  "Peso Normalizado Ger."; × Plano = peso da atividade na Gerência (Σ = 100%) — é **matematicamente a
+  média das coordenações** (cada item pesa Redist/3): com teto por meta dá 99,07 / 99,10 / 98,67, igual ao
+  app até a casa decimal; sem teto explode (unidades diferentes entre plano e realizado, ex.: Socaria de
+  Linha plano ~7 km × realizado 1.194 m). Logo a diferença para o oficial está no **realizado**, não no peso.
   **Próximo passo:** export de pesos/pontuação (layout do `data (9).xlsx`) filtrado por
   *Tipo de visão = Gerência*, Gerência SP, 1º–3º tri → derivar a regra como foi feito na seção 5.
 - **Ano = média dos trimestres.**
