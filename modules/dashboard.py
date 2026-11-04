@@ -41,18 +41,24 @@ def _cartoes(rf: fisico.ResultadoFisico, sem_fim: int) -> None:
 
 
 def _tabela_atividades(tab: pd.DataFrame) -> None:
-    cols = [c for c in ["Descrição Meta", "Unidade", "SLA", "Plano", "Qtd. Realizado", "% Realizado",
-                        "Pendente", "Dias Equipe p/ Concluir", "Dias de Equipe", "Realizado (Extra Plano)",
-                        "Peso_no_Plano"] if c in tab.columns]
+    cols = [c for c in ["Descrição Meta", "Unidade", "SLA", "Plano", "Qtd. Realizado", "Aderência PCM",
+                        "Peso na Visão", "Contribuição", "% Realizado", "Pendente", "Dias Equipe p/ Concluir",
+                        "Dias de Equipe", "Realizado (Extra Plano)"] if c in tab.columns]
     if tab.empty or not cols:
         st.caption("Sem atividades para exibir.")
         return
     st.dataframe(
-        tab[cols].rename(columns={"Peso_no_Plano": "Peso no Plano", "Dias de Equipe": "Dias Trabalhados"}),
+        tab[cols].rename(columns={"% Realizado": "% Volume (sem teto)", "Dias de Equipe": "Dias Trabalhados"}),
         hide_index=True, width="stretch",
         column_config={
-            "% Realizado": st.column_config.ProgressColumn(format="percent", min_value=0, max_value=1),
-            "Peso no Plano": FMT_PCT,
+            "Aderência PCM": st.column_config.ProgressColumn(
+                format="percent", min_value=0, max_value=1,
+                help="Regra do PCM: realizado limitado ao plano da meta ÷ plano"),
+            "Peso na Visão": st.column_config.NumberColumn(format="percent", help="Peso da meta nesta visão"),
+            "Contribuição": st.column_config.NumberColumn(
+                format="percent", help="Peso × Aderência PCM — a soma da coluna é a aderência da visão"),
+            "% Volume (sem teto)": st.column_config.NumberColumn(
+                format="percent", help="Realizado ÷ plano sem limite (mostra excesso de execução)"),
             "SLA": st.column_config.TextColumn(help="Produção esperada da equipe por dia (Configurações → SLA)"),
             "Dias Equipe p/ Concluir": st.column_config.NumberColumn(
                 format="%d", help="Pendente ÷ SLA (arredondado para cima)"),

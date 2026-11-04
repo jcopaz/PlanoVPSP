@@ -140,13 +140,13 @@ def calcular(df, p: config.Parametros, coord: str, sem_ini: int, sem_fim: int) -
     }
 
     # ---- Tabela por atividade (físico) ------------------------------- #
-    tab = _tabela_itens(base, p, sem_fim)
+    tab = _tabela_itens(base, p, sem_fim, divisor)
 
     return ResultadoFisico(curva=curva, tabela_itens=tab, kpis=kpis,
                            semana_atual=semana_atual, divisor=divisor)
 
 
-def _tabela_itens(base, p, sem_fim) -> pd.DataFrame:
+def _tabela_itens(base, p, sem_fim, divisor: int = 1) -> pd.DataFrame:
     o_pcm = p.g("origem_pcm", str, "PCM")
     o_exec = p.g("origem_execucao", str, "Coordenação")
     s_sim, s_nao = p.g("plano_sim", str, "Sim"), p.g("plano_nao", str, "Não")
@@ -189,4 +189,11 @@ def _tabela_itens(base, p, sem_fim) -> pd.DataFrame:
     # SLA = produção esperada da equipe por dia -> dias de equipe que faltam
     sla = pd.to_numeric(tab["SLA"], errors="coerce") if "SLA" in tab.columns else pd.Series(np.nan, index=tab.index)
     tab["Dias Equipe p/ Concluir"] = np.ceil(tab["Pendente"] / sla.where(sla > 0))
+    # Visão por material na regra do PCM: aderência com teto e quanto cada meta soma na visão.
+    # Σ Contribuição = aderência da visão (coordenação, ou Gerência = ÷ nº de coordenações).
+    if "Peso Realizado" not in tab.columns:
+        tab["Peso Realizado"] = 0.0
+    tab["Aderência PCM"] = (tab["Peso Realizado"] / tab["Peso_no_Plano"].replace(0, np.nan)).clip(upper=1)
+    tab["Peso na Visão"] = tab["Peso_no_Plano"] / divisor
+    tab["Contribuição"] = np.minimum(tab["Peso Realizado"], tab["Peso_no_Plano"]) / divisor
     return tab.sort_values("Peso_no_Plano", ascending=False)

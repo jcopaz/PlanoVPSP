@@ -1,6 +1,8 @@
 # Plano VP — Documentação técnica
 
 Para quem vai **manter ou evoluir** o código. Uso do dia a dia: [MANUAL_USUARIO.md](MANUAL_USUARIO.md).
+**Regra de aderência do PCM** (fonte da verdade do cálculo, com evidências e como reconferir):
+[REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md). Decisões e lições: [HISTORICO_PROJETO.md](HISTORICO_PROJETO.md).
 Versão atual e histórico: [`core/versao.py`](../core/versao.py).
 
 ---
@@ -195,7 +197,10 @@ com todos os trimestres + cadastros. Recomendado: exportar o .zip ao fechar cada
 - **Regra de cálculo**: sempre em `core/` (sem Streamlit); rode a validação abaixo antes do commit.
 - **Versão**: bump em `core/versao.py` + linha no HISTÓRICO a cada commit que muda comportamento.
 
-**Validação mínima antes de publicar** (precisa da planilha do 2º tri na pasta):
+**Validação contra o PCM** (obrigatória se mexer no cálculo): `scripts/conferir_pcm.py` —
+ver [REGRA_ADERENCIA_PCM.md §7](REGRA_ADERENCIA_PCM.md).
+
+**Validação mínima do motor** (precisa da planilha do 2º tri na pasta):
 ```bash
 python -c "from core import config,dados,fisico; p=config.carregar(); p.cfg['arquivo_plano']='Plano de Manutenção 2º Trimestre - SP.xlsx'; d,_,_=dados.carregar_plano(p); print(fisico.calcular(d,p,'Gerência',14,26).kpis['aderencia_atual'])"
 # esperado: 0.9405 (planilha antiga) — a mesma base no modelo v3 dá 0.9418 (1 linha de JIC

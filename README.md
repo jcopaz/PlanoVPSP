@@ -15,6 +15,8 @@ equipes executaram (lançado pelos programadores), por **Gerência** e por
 
 📘 **Documentação:** [docs/MANUAL_USUARIO.md](docs/MANUAL_USUARIO.md) (como usar) ·
 [docs/PUBLICACAO.md](docs/PUBLICACAO.md) (Neon + Streamlit Cloud, passo a passo) ·
+[docs/REGRA_ADERENCIA_PCM.md](docs/REGRA_ADERENCIA_PCM.md) (**regra oficial do PCM — ler antes de mexer no cálculo**) ·
+[docs/HISTORICO_PROJETO.md](docs/HISTORICO_PROJETO.md) (decisões, investigações e lições) ·
 [docs/DOCUMENTACAO_TECNICA.md](docs/DOCUMENTACAO_TECNICA.md) (como funciona e como manter).
 Versão e histórico de mudanças: [core/versao.py](core/versao.py).
 
@@ -76,7 +78,7 @@ auth/               login, sessão, senha (PBKDF2), permissões por perfil
 database/           conexão (SQLite/Postgres), tabelas, consultas
 core/               regras de negócio — cálculo das curvas, pesos, OPEX, Excel, PCM
 modules/            telas: home (menu), dashboard, lancamentos, dados, configuracoes
-scripts/            criar_usuario, carregar_no_banco, importar_plano_pcm, gerar_modelo, ...
+scripts/            criar_usuario, carregar_no_banco, conferir_pcm (validação x Power BI), importar_plano_pcm, ...
 modelos/            planilha modelo (em branco) e exemplo com dados fictícios
 docs/               manual do usuário e documentação técnica
 ```

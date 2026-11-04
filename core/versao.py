@@ -57,6 +57,10 @@
 #     Encerrada; atribuído ao Depto do ATIVO (inclui a GOEV — socaria mecanizada);
 #   - grupos Saneamento Vegetal e Drenagem fora da aderência da Via (configurável).
 #   Também: datas em texto ISO (2026-10-05) eram lidas como dia/mês.
+# 4.1.0 (04/11/2026): visão por material na regra do PCM (Aderência PCM com teto,
+#   Peso na Visão, Contribuição — Σ Contribuição = aderência da visão);
+#   scripts/conferir_pcm.py (app x Power BI); docs/REGRA_ADERENCIA_PCM.md e
+#   docs/HISTORICO_PROJETO.md guardam a regra, as evidências e as decisões.
 
-APP_VERSION = "4.0.0"
+APP_VERSION = "4.1.0"
 APP_NOME = "Plano VP"
