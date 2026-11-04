@@ -98,6 +98,9 @@ def _aba_resumo(r: motor.ResultadoTrimestre) -> None:
                      k["classe_tendencia"])
     st.markdown("##### 📋 Quadro-resumo")
     _quadro_resumo(r)
+    st.caption(f"Coordenações = regra oficial do PCM (Adr_Ativo). {r.rotulo_gerencia} = média das coordenações — "
+               "estimativa: o PCM calcula a Gerência por regra própria, ainda em validação "
+               "(docs/REGRA_ADERENCIA_PCM.md §6).")
 
     tab = r.gerencia.tabela_itens.copy()
     if not tab.empty and "Peso Realizado" in tab.columns:

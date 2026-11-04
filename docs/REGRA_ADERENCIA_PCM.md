@@ -128,8 +128,24 @@ Pegadinhas dos exports:
 \* trimestre em andamento: o Realizado foi exportado depois do print; diferença esperada.
 
 **Premissas ainda NÃO validadas com o PCM:**
-- **Gerência = média simples das coordenações.** O PCM pode ponderar (por volume, nº de metas…).
-  Para validar: pegar o número de Gerência do Power BI e rodar a seção 7.
+- **Gerência — o app usa a média simples das coordenações, mas NÃO é a regra do PCM.**
+  Power BI (Gerência SP, Adr_Ativo): **1º tri 99,62% · 2º tri 99,35% · 3º tri 97,91%**. Investigação de
+  04/11/2026 (`12 fórmulas testadas`), nenhuma bate nos 3 trimestres:
+
+  | Fórmula | 1º | 2º | 3º |
+  |---|---|---|---|
+  | Média das coordenações (app) | 99,07 | 99,10 | 98,67 |
+  | Média ponderada por Σ peso da coordenação | 98,93 | 99,05 | 98,07 |
+  | Conjunto único (todas as metas, peso F) | 98,93 | 99,05 | 98,07 |
+  | Por atividade somando coordenações, teto por coordenação | 99,06 | 99,24 | 97,29 |
+  | **Por atividade, teto no total da Gerência, peso F** (mais próxima) | 99,39 | 99,84 | 97,67 |
+  | Junção das disciplinas V+E+I (média / conjunto) | 99,07 | 99,18 | 93,35 |
+
+  Conclusões: (a) a Gerência **não** é combinação dos 3 números de coordenação (no 1º tri o peso de IPG
+  teria de ser ~0); (b) o caminho "peso por atividade, somando as coordenações" (descrição do usuário) é
+  o mais próximo — falta um detalhe; (c) o Power BI tem visão própria `Tipo_Visao = Gerencia` (rodapé).
+  **Próximo passo:** export de pesos/pontuação (layout do `data (9).xlsx`) filtrado por
+  *Tipo de visão = Gerência*, Gerência SP, 1º–3º tri → derivar a regra como foi feito na seção 5.
 - **Ano = média dos trimestres.**
 - **Disciplinas E (Eletro) e I** — o PCM mede outras disciplinas nas mesmas coordenações (E.SP.*, I.SP.*),
   com metas e `Tipo de medição = ATIVO`. Para incluir: cadastrar os Deptos em Configurações →

@@ -61,6 +61,8 @@
 #   Peso na Visão, Contribuição — Σ Contribuição = aderência da visão);
 #   scripts/conferir_pcm.py (app x Power BI); docs/REGRA_ADERENCIA_PCM.md e
 #   docs/HISTORICO_PROJETO.md guardam a regra, as evidências e as decisões.
+# 4.1.1 (04/11/2026): investigação da Gerência registrada (não é média; 12 fórmulas
+#   testadas, nenhuma bate) e aviso no Resumo de que a Gerência é estimativa.
 
-APP_VERSION = "4.1.0"
+APP_VERSION = "4.1.1"
 APP_NOME = "Plano VP"
