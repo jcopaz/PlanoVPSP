@@ -149,8 +149,17 @@ Pegadinhas dos exports:
   média das coordenações** (cada item pesa Redist/3): com teto por meta dá 99,07 / 99,10 / 98,67, igual ao
   app até a casa decimal; sem teto explode (unidades diferentes entre plano e realizado, ex.: Socaria de
   Linha plano ~7 km × realizado 1.194 m). Logo a diferença para o oficial está no **realizado**, não no peso.
-  **Próximo passo:** export de pesos/pontuação (layout do `data (9).xlsx`) filtrado por
-  *Tipo de visão = Gerência*, Gerência SP, 1º–3º tri → derivar a regra como foi feito na seção 5.
+  (e) **Exports oficiais por trimestre (`Peso 1º/2º/3º Tri.xlsx`, 04/11/2026)** — mesmo layout do
+  `data (9)`, nível **Departamento** (rodapé "Tipo_Visao não é Gerencia…"; traz SP **e VP**, filtrar
+  `LI_Gerencia = SP`). Confirmam as coordenações (2º e 3º tri iguais ao print; 1º tri IPA 98,83% no export ×
+  99,27% no print — número do PCM muda com a data de extração). Mostram que no 2º tri o PCM tratou
+  **Saneamento Vegetal como bloco separado** dentro do V.SP (Redist próprio somando 1; ex.: Roçada PJU
+  Redist 1,0, Real Ativo 77.700 = plano, enquanto o Realizado do PCM só tem 20.265 → outra fonte).
+  Com os valores oficiais, 13 fórmulas de Gerência testadas, nenhuma fecha os 3 trimestres (melhores:
+  ponderada pelo Peso Inicial 98,82/98,88/98,03; teto no total da Gerência 99,24/99,84/97,67).
+  **Próximo passo:** no Power BI, mesma tabela, filtro `Tipo_Visao` = **somente "Gerencia"** (os exports
+  acima excluem essa visão), Gerência SP, 1º–3º tri, extraído **no mesmo dia** do número de Gerência
+  comparado → derivar a regra como na seção 5.
 - **Ano = média dos trimestres.**
 - **Disciplinas E (Eletro) e I** — o PCM mede outras disciplinas nas mesmas coordenações (E.SP.*, I.SP.*),
   com metas e `Tipo de medição = ATIVO`. Para incluir: cadastrar os Deptos em Configurações →
