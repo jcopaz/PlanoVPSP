@@ -52,6 +52,8 @@ _DEFAULT_CONFIG = {
     "origem_execucao": "Coordenação",
     "plano_sim": "Sim",
     "plano_nao": "Não",
+    # Grupos que não entram na aderência da Via (o PCM os mede em outros centros)
+    "grupos_fora_aderencia": "Saneamento Vegetal;Drenagem",
 }
 
 _DEFAULT_TRIMESTRES = pd.DataFrame(

@@ -30,6 +30,23 @@ def _filtra_visao(df, p, coord):
     return base
 
 
+def _peso_realizado_limitado(exec_sim: pd.DataFrame) -> pd.DataFrame:
+    """Peso realizado por Chave Peso x Semana com TETO no plano da meta (regra do PCM:
+    fazer 132 de 40 conta 40). Acumula semana a semana e só credita até o Plano Trimestral."""
+    cols = ["Chave Peso", "Semana", "peso"]
+    if exec_sim.empty or "Plano Trimestral" not in exec_sim.columns:
+        return exec_sim.assign(peso=exec_sim.get("Peso Realizado Linha", 0.0)).reindex(columns=cols)
+    g = (exec_sim.groupby(["Chave Peso", "Semana"], as_index=False)["QUANTIDADE REALIZADA"].sum()
+         .sort_values(["Chave Peso", "Semana"]))
+    plano = exec_sim.groupby("Chave Peso")["Plano Trimestral"].first()
+    pu = exec_sim.groupby("Chave Peso")["Peso Unitário"].first()
+    acum = g.groupby("Chave Peso")["QUANTIDADE REALIZADA"].cumsum()
+    lim = np.minimum(acum, pd.to_numeric(g["Chave Peso"].map(plano), errors="coerce").fillna(0.0))
+    inc = lim - lim.groupby(g["Chave Peso"]).shift(fill_value=0.0)
+    g["peso"] = inc * pd.to_numeric(g["Chave Peso"].map(pu), errors="coerce").fillna(0.0)
+    return g[cols]
+
+
 def calcular(df, p: config.Parametros, coord: str, sem_ini: int, sem_fim: int) -> ResultadoFisico:
     rot_ger = p.g("rotulo_gerencia", str, "Gerência")
     o_pcm = p.g("origem_pcm", str, "PCM")
@@ -46,7 +63,7 @@ def calcular(df, p: config.Parametros, coord: str, sem_ini: int, sem_fim: int) -
 
     # ---- Realizado (execução dentro do plano) -------------------------- #
     exec_sim = base[(base["Origem Programação"] == o_exec) & (base["Plano"] == s_sim)].copy()
-    real_sem = (exec_sim.groupby("Semana")["Peso Realizado Linha"].sum() / divisor)
+    real_sem = (_peso_realizado_limitado(exec_sim).groupby("Semana")["peso"].sum() / divisor)
 
     semanas = pd.DataFrame({"Semana": range(sem_ini, sem_fim + 1)})
     real_sem = semanas.merge(real_sem.rename("peso").reset_index(), on="Semana", how="left").fillna(0.0)
@@ -157,6 +174,12 @@ def _tabela_itens(base, p, sem_fim) -> pd.DataFrame:
                  .agg(**{"Realizado (Extra Plano)": ("QUANTIDADE REALIZADA", "sum")})
                  .reset_index())
 
+    # Peso realizado com teto no plano de cada Depto|Meta (mesma regra da curva)
+    lim = _peso_realizado_limitado(reals)
+    if not lim.empty:
+        meta_da_chave = reals.drop_duplicates("Chave Peso").set_index("Chave Peso")["Descrição Meta"]
+        res_real["Peso Realizado"] = res_real["Descrição Meta"].map(
+            lim.groupby(lim["Chave Peso"].map(meta_da_chave))["peso"].sum()).fillna(0.0)
     tab = res_pcm.merge(res_real, on="Descrição Meta", how="outer")
     tab = tab.merge(res_extra, on="Descrição Meta", how="outer")
     num = tab.select_dtypes("number").columns

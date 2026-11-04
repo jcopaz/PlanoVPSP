@@ -285,7 +285,7 @@ def legado_para_v3(arquivo, p: config.Parametros) -> tuple[pd.DataFrame, pd.Data
 def trimestre_dos_dados(plano: pd.DataFrame, lanc: pd.DataFrame) -> tuple[int, int] | None:
     """(ano, trimestre) mais frequente nas datas do plano (ou dos lançamentos)."""
     for df, col in ((plano, "Data Planejada"), (lanc, "Data")):
-        d = pd.to_datetime(df[col], errors="coerce", dayfirst=True).dropna() if col in df else pd.Series(dtype="datetime64[ns]")
+        d = dados.para_data(df[col]).dropna() if col in df else pd.Series(dtype="datetime64[ns]")
         if len(d):
             par = (d.dt.year.astype(str) + "-" + d.dt.quarter.astype(str)).mode().iloc[0]
             ano, tri = par.split("-")

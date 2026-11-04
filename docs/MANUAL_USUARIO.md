@@ -66,6 +66,10 @@ E avisa (sem bloquear): meta sem peso no seu Depto, realizado abaixo do programa
 | **Financeiro** | curva OPEX (precisa do arquivo de orçamento configurado) |
 | **Evolução** | aderência por trimestre e por ano, Gerência e coordenações |
 
+A aderência segue a **regra oficial do PCM** (a mesma "Adr_Ativo" do Power BI): cada meta conta no
+máximo 100% do seu plano (fazer a mais numa meta não compensa a que ficou para trás), e metas de
+Saneamento Vegetal e Drenagem não entram na conta da Via (Configurações → Parâmetros).
+
 Como ler: **Meta PCM** = quanto do plano deveria estar feito até a semana; **Realizado** = quanto foi
 feito; **Projeção** = onde o trimestre fecha mantendo o ritmo médio; **Mín. semanal p/ meta** =
 quanto precisa render por semana daqui em diante para fechar 100%.

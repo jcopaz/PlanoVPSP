@@ -70,6 +70,19 @@ def _renomeia(df: pd.DataFrame, mapa: dict) -> pd.DataFrame:
     return df
 
 
+def para_data(valores) -> pd.Series:
+    """Datas vindas de Excel/tela/texto. Texto ISO (2026-10-05) é lido como ano-mês-dia;
+    o resto como dia/mês/ano (padrão brasileiro). Sem isso, "2026-10-05" virava 10/05."""
+    s = pd.Series(valores)
+    if pd.api.types.is_datetime64_any_dtype(s):
+        return s
+    iso = s.astype("string").str.match(r"^\s*\d{4}-\d{2}-\d{2}").fillna(False).astype(bool)
+    out = pd.to_datetime(s.where(~iso), errors="coerce", dayfirst=True)
+    if iso.any():
+        out[iso] = pd.to_datetime(s[iso].astype(str).str.strip().str[:10], format="%Y-%m-%d", errors="coerce")
+    return out
+
+
 def semana_excel(datas: pd.Series) -> pd.Series:
     """Equivalente ao =WEEKNUM(data) do Excel (semana começa no domingo; 1/jan = semana 1)."""
     d = pd.to_datetime(datas, errors="coerce")
@@ -182,7 +195,7 @@ def montar_canonico(pesos: pd.DataFrame, plano: pd.DataFrame, lanc: pd.DataFrame
 
     dia["Depto"] = _texto(dia["Depto"], maiusculo=True)
     dia["Descrição Meta"] = _texto(dia["Descrição Meta"], maiusculo=True)
-    dia["Data Planejada"] = pd.to_datetime(dia["Data Planejada"], errors="coerce", dayfirst=True)
+    dia["Data Planejada"] = para_data(dia["Data Planejada"])
     n_sem_data = int(dia["Data Planejada"].isna().sum())
     if n_sem_data:
         avisos.append(f"{n_sem_data} linha(s) sem data válida (ficam fora das curvas semanais).")
@@ -201,6 +214,9 @@ def montar_canonico(pesos: pd.DataFrame, plano: pd.DataFrame, lanc: pd.DataFrame
     pesos["Depto"] = _texto(pesos["Depto"], maiusculo=True)
     pesos["Descrição Meta"] = _texto(pesos["Descrição Meta"], maiusculo=True)
     pesos["Peso"] = pd.to_numeric(pesos["Peso"], errors="coerce").fillna(0.0).clip(lower=0)
+    fora = {g.strip().upper() for g in p.g("grupos_fora_aderencia", str, "").split(";") if g.strip()}
+    if fora:
+        pesos.loc[pesos["Grupo"].astype("string").str.strip().str.upper().isin(fora).fillna(False), "Peso"] = 0.0
     pesos = pesos.dropna(subset=["Depto", "Descrição Meta"])
     pesos["Chave Peso"] = pesos["Depto"] + "|" + pesos["Descrição Meta"]
     pesos = pesos.drop_duplicates("Chave Peso", keep="last")

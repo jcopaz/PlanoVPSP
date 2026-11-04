@@ -109,9 +109,24 @@ Peso Realizado Linha = Qtd Realizada × Peso Unitário     (lançamentos com No 
 Peso Extra Linha     = Qtd Realizada × Peso Unitário     (lançamentos com No Plano = Não)
 ```
 
+**Regra oficial do PCM ("Adr_Ativo" do Power BI) — v4.0.0**, conferida nos 4 trimestres de 2026
+(11 de 12 coordenações a até 0,4 p.p.; a 12ª é o 4º tri em andamento):
+```
+Aderência da coordenação = Σ_meta  Peso Item Redist × min(Realizado, Plano Trimestral) / Plano Trimestral
+```
+- **Teto por meta**: o realizado acumulado de cada Depto|Meta só conta até o plano dela
+  (`fisico._peso_realizado_limitado`, semana a semana). Fazer 132 de 40 conta 40.
+- **Realizado do PCM** (`importar_pcm.ler_realizado`): conta para o plano a ordem com
+  "Considera Plano? = Sim" **ou** com a ordem "Encerrada" (o "CONC" das colunas do PCM); a execução
+  é da coordenação **onde fica o ativo** ("Centro de trabalho Ativo" + Gerência), inclusive a feita
+  pela **GOEV** (socaria mecanizada).
+- **Grupos fora da aderência** (config `grupos_fora_aderencia`, padrão "Saneamento Vegetal;Drenagem"):
+  peso zerado antes da normalização. No 2º tri/2026 o PCM pôs essas metas nos centros de Via, mas
+  não as pesou; no 4º tri elas estão nos centros I.SP.
+
 **Curvas** (`fisico.calcular`), acumuladas semana a semana, valor de 0 a 1 por Depto:
 - *Meta PCM* = Σ Peso Planejado ÷ nº de coordenações da visão (1 ou as que "entram na Gerência");
-- *Realizado* = Σ Peso Realizado ÷ mesmo divisor;
+- *Realizado* = Σ Peso Realizado (com teto por meta) ÷ mesmo divisor;
 - *Projeção* = realizado na semana atual + ritmo médio × semanas restantes.
   Semana atual = última semana com lançamento "No Plano = Sim".
 
@@ -197,6 +212,7 @@ python -c "from core import config,dados,fisico; p=config.carregar(); p.cfg['arq
 | 03/11/2026 | SQLite local + Neon em produção, mesma camada SQLAlchemy | começar já sem servidor; publicar só trocando a URL |
 | 03/11/2026 | SLA por Depto × Meta em cadastro próprio | "produção esperada da equipe", configurada 1 vez por coordenação |
 | 03/11/2026 | Hospedagem no Hugging Face Spaces (Docker + sync pelo GitHub Actions) | Streamlit Cloud perdia ~15% das requisições; Render free compartilha 750 h com o Gestão_OS |
+| 04/11/2026 | Aderência = regra oficial do PCM (teto por meta, Sim ou Encerrada, ativo, sem Saneamento/Drenagem) | números iguais ao Power BI (Adr_Ativo) |
 | 04/11/2026 | Histórico pelos exports Planejado/Realizado do PCM; peso = Peso Item Inicial | dispensa a planilha dos programadores; Peso Inicial é fixo por meta |
 | 03/11/2026 | Janela de semanas automática pelo calendário (4º tri/2026 = 40–53) | 2026 tem semana 53 com plano |
 

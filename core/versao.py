@@ -50,6 +50,13 @@
 #   Realizado (ordens SAP: Qtd. Real, Considera Plano?, Motivo de Perda) e o export
 #   de pesos (Peso Item Inicial, fixo por meta — reproduz os pesos do 1º e 3º tri,
 #   76/76). Leitor da planilha antiga usa só dados digitados (lê a do 1º tri).
+# 4.0.0 (04/11/2026): aderência = regra oficial do PCM ("Adr_Ativo" do Power BI),
+#   conferida nos 4 trimestres de 2026 (11/12 coordenações a até 0,4 p.p.):
+#   - realizado de cada meta com TETO no plano (fazer 132 de 40 conta 40);
+#   - Realizado do PCM: conta para o plano "Considera Plano? = Sim" OU ordem
+#     Encerrada; atribuído ao Depto do ATIVO (inclui a GOEV — socaria mecanizada);
+#   - grupos Saneamento Vegetal e Drenagem fora da aderência da Via (configurável).
+#   Também: datas em texto ISO (2026-10-05) eram lidas como dia/mês.
 
-APP_VERSION = "3.2.0"
+APP_VERSION = "4.0.0"
 APP_NOME = "Plano VP"

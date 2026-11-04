@@ -255,7 +255,6 @@ def importar(arquivo_export, p: config.Parametros, catalogo: pd.DataFrame | None
 # Histórico: Planejado (N trimestres) + Realizado + catálogo de pesos
 # --------------------------------------------------------------------------- #
 DE_PARA_REALIZADO = {
-    "Centro de trabalho responsável": "Depto",
     "Data Programada": "Data",
     "Descrição Meta": "Descrição Meta",
     "Nº do material / Nº do serviço": "Nº Material",
@@ -290,26 +289,47 @@ def catalogo_peso_inicial(arquivo_pesos, deptos: set[str]) -> pd.DataFrame:
     return df.reindex(columns=["Depto", "Grupo", "Descrição Meta", "Peso"]).drop_duplicates(["Depto", "Descrição Meta"])
 
 
+# Equipes de fora da coordenação cuja execução conta para a Via (socaria mecanizada).
+RESPONSAVEIS_EXTRA_VIA = {"GOEV"}
+
+
 def ler_realizado(arquivo, deptos: set[str], com_sem_meta: bool = False) -> tuple[pd.DataFrame, int]:
     """Realizado do PCM no layout da aba Lancamentos + colunas _ano/_tri.
+
+    Regra do PCM ("Adr_Ativo", conferida contra o Power BI nos 4 trimestres de 2026):
+      - a execução é da coordenação ONDE FICA O ATIVO ("Centro de trabalho Ativo",
+        ex. IPA -> V.SP.IPA), inclusive a feita pela GOEV (socaria mecanizada);
+      - conta para o plano (No Plano = Sim) a ordem com "Considera Plano? = Sim" OU
+        com a ordem Encerrada (o "CONC" das colunas do PCM).
     Devolve (lancamentos, n_linhas_sem_meta_ignoradas)."""
     bruto = pd.read_excel(arquivo, header=None, nrows=15)
     r = pd.read_excel(arquivo, header=_acha_cabecalho(bruto))
     r.columns = pd.Index(r.columns).astype(str).str.strip()
-    faltam = [c for c in ("Centro de trabalho responsável", "Data Programada", "Descrição Meta", "Qtd. Real",
-                          "Considera Plano?") if c not in r.columns]
+    faltam = [c for c in ("Centro de trabalho Ativo", "Centro de trabalho responsável", "Data Programada",
+                          "Descrição Meta", "Qtd. Real", "Considera Plano?") if c not in r.columns]
     if faltam:
         raise ValueError(f"Colunas ausentes no Realizado do PCM: {faltam}")
     r["Data Programada"] = pd.to_datetime(r["Data Programada"], errors="coerce")
     r = r[r["Data Programada"].notna()].copy()                       # tira o rodapé de filtros
-    r["Centro de trabalho responsável"] = r["Centro de trabalho responsável"].astype(str).str.strip().str.upper()
-    r = r[r["Centro de trabalho responsável"].isin(deptos)]
+    resp = r["Centro de trabalho responsável"].astype(str).str.strip().str.upper()
+    prefixos = {d.rsplit(".", 1)[0] + "." for d in deptos}            # ex.: "V.SP."
+    # (Gerência, código do ativo) -> Depto: ("SP", "IPA") -> "V.SP.IPA" (evita trocar SP x VP)
+    por_ger_codigo = {(d.split(".")[1], d.rsplit(".", 1)[-1]): d for d in deptos if d.count(".") >= 2}
+    ger = (r["Gerência"] if "Gerência" in r.columns else pd.Series("SP", index=r.index)).astype(str).str.strip().str.upper()
+    cod = r["Centro de trabalho Ativo"].astype(str).str.strip().str.upper()
+    r["_depto"] = [por_ger_codigo.get((g, c)) for g, c in zip(ger, cod)]
+    da_via = resp.str.startswith(tuple(prefixos)) | resp.isin(RESPONSAVEIS_EXTRA_VIA)
+    r = r[r["_depto"].notna() & da_via]
     meta = r["Descrição Meta"].fillna("").astype(str).str.strip()
     n_sem_meta = int((meta == "").sum())
     if not com_sem_meta:
         r = r[meta != ""]
 
     out = r.reindex(columns=list(DE_PARA_REALIZADO)).rename(columns=DE_PARA_REALIZADO)
+    out.insert(0, "Depto", r["_depto"].values)
+    encerrada = r.get("Status atual da ordem", pd.Series("", index=r.index)).astype(str).str.strip().str.lower().eq("encerrada")
+    considera = r["Considera Plano?"].astype(str).str.strip().str.lower().eq("sim")
+    out["No Plano"] = ["Sim" if (c or e) else "Não" for c, e in zip(considera, encerrada)]
     out["Descrição Meta"] = out["Descrição Meta"].fillna("").astype(str).str.strip().str.upper()
     prog = pd.to_numeric(out["Quantidade Programada"], errors="coerce")
     real = pd.to_numeric(out["Quantidade Realizada"], errors="coerce")
@@ -319,8 +339,9 @@ def ler_realizado(arquivo, deptos: set[str], com_sem_meta: bool = False) -> tupl
     km_i = pd.to_numeric(r.get("Km início"), errors="coerce").fillna(0)
     km_f = pd.to_numeric(r.get("Km Fim"), errors="coerce").fillna(0)
     out["Observação"] = [
-        f"Ordem {_txt(o)}/{_txt(op)} · {_txt(st)}" + (f" · KM {a:g}-{b:g}" if (a or b) else "")
-        for o, op, st, a, b in zip(r.get("Nº ordem"), r.get("Nº operação"), r.get("Status atual da ordem"), km_i, km_f)]
+        f"Ordem {_txt(o)}/{_txt(op)} · {_txt(st)} · {_txt(rp)}" + (f" · KM {a:g}-{b:g}" if (a or b) else "")
+        for o, op, st, rp, a, b in zip(r.get("Nº ordem"), r.get("Nº operação"), r.get("Status atual da ordem"),
+                                       r["Centro de trabalho responsável"], km_i, km_f)]
     out["Programador"] = "PCM (SAP)"
     out["_ano"] = r["Data Programada"].dt.year.values
     out["_tri"] = r["Data Programada"].dt.quarter.values

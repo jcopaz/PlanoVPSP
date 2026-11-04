@@ -49,7 +49,8 @@ def _data(v):
         return v.date()
     if isinstance(v, date):
         return v
-    d = pd.to_datetime(v, errors="coerce", dayfirst=True)
+    from core.dados import para_data
+    d = para_data([v]).iloc[0]
     return None if pd.isna(d) else d.date()
 
 
@@ -104,6 +105,7 @@ def _df(conn, stmt) -> pd.DataFrame:
 # region ====================== SESSÃO 2: Padrões da 1ª execução ======================
 
 CHAVES_CONFIG = ["meta_aderencia", "faixa_leve", "faixa_risco", "faixa_critico", "rotulo_gerencia",
+                 "grupos_fora_aderencia",
                  "origem_pcm", "origem_execucao", "plano_sim", "plano_nao",
                  "arquivo_orcamento", "aba_plan_orc", "aba_realizado_analitico"]
 

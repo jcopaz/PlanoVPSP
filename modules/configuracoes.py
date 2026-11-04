@@ -168,6 +168,8 @@ def _aba_parametros():
         risco = c3.number_input("Em risco até", 0.0, 1.0, f("faixa_risco", .10), 0.01, format="%.2f")
         crit = c4.number_input("Risco alto até", 0.0, 1.0, f("faixa_critico", .15), 0.01, format="%.2f")
         rot = st.text_input("Nome da visão consolidada", cfg.get("rotulo_gerencia", "Gerência"))
+        fora = st.text_input("Grupos fora da aderência (;)", cfg.get("grupos_fora_aderencia", "Saneamento Vegetal;Drenagem"),
+                             help="Metas desses grupos não pesam na curva da Via (regra do PCM).")
         st.markdown("**Curva financeira (OPEX)** — arquivo na pasta do app")
         c5, c6 = st.columns(2)
         orc = c5.text_input("Arquivo de orçamento", cfg.get("arquivo_orcamento", ""))
@@ -180,7 +182,7 @@ def _aba_parametros():
             st.error("As faixas precisam estar em ordem: leve ≤ risco ≤ alto.")
         else:
             q.salvar_config({"meta_aderencia": meta, "faixa_leve": leve, "faixa_risco": risco,
-                             "faixa_critico": crit, "rotulo_gerencia": rot, "arquivo_orcamento": orc,
+                             "faixa_critico": crit, "rotulo_gerencia": rot, "grupos_fora_aderencia": fora, "arquivo_orcamento": orc,
                              "aba_plan_orc": aba, "env.pacotes_incluir": pac, "env.centros_custo": ccs},
                             get_login())
             _ok("Parâmetros salvos.")
