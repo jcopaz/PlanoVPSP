@@ -53,8 +53,8 @@ def _peso_realizado_limitado(exec_sim: pd.DataFrame, ref: pd.DataFrame | None = 
     cols = ["Chave Peso", "Descrição Meta", "Semana", "peso"]
     if exec_sim.empty or "Plano Trimestral" not in exec_sim.columns:
         return exec_sim.assign(peso=exec_sim.get("Peso Realizado Linha", 0.0)).reindex(columns=cols)
-    soma = exec_sim["Descrição Meta"].isin(metas_soma) if (metas_soma and ref is not None) \
-        else pd.Series(False, index=exec_sim.index)
+    soma = exec_sim["Descrição Meta"].astype(str).str.strip().str.upper().isin(metas_soma) \
+        if (metas_soma and ref is not None) else pd.Series(False, index=exec_sim.index)
     partes = []
     # Gerência: toda meta vale (Σ peso das coordenações) × (realizado ÷ plano somados) — o peso por
     # unidade passa a ser o da meta na Gerência, não o de cada Depto (data (10), 1º tri/2026: 19/19 metas).
@@ -70,7 +70,7 @@ def _peso_realizado_limitado(exec_sim: pd.DataFrame, ref: pd.DataFrame | None = 
         partes.append(_limitar(g, "Chave Peso", e.groupby("Chave Peso")["Plano Trimestral"].first(), pu))
     e = exec_sim[soma]
     if not e.empty:
-        r = ref[ref["Descrição Meta"].isin(metas_soma)].groupby("Descrição Meta").agg(
+        r = ref[ref["Descrição Meta"].astype(str).str.strip().str.upper().isin(metas_soma)].groupby("Descrição Meta").agg(
             plano=("Plano Trimestral", "sum"), peso=("Peso Item", "sum"))
         r = r[r["plano"] > 0]
         g = e.groupby(["Descrição Meta", "Semana"], as_index=False)["QUANTIDADE REALIZADA"].sum()

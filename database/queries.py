@@ -105,7 +105,7 @@ def _df(conn, stmt) -> pd.DataFrame:
 # region ====================== SESSÃO 2: Padrões da 1ª execução ======================
 
 CHAVES_CONFIG = ["meta_aderencia", "faixa_leve", "faixa_risco", "faixa_critico", "rotulo_gerencia",
-                 "grupos_fora_aderencia",
+                 "grupos_fora_aderencia", "metas_medicao_depto",
                  "origem_pcm", "origem_execucao", "plano_sim", "plano_nao",
                  "arquivo_orcamento", "aba_plan_orc", "aba_realizado_analitico"]
 
