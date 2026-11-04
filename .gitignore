@@ -29,3 +29,8 @@ Thumbs.db
 
 # Segredos (URL do banco com senha)
 .streamlit/secrets.toml
+
+# Exports do PCM e planilhas de trimestre com dados reais
+Planejado*.xlsx
+Realizado*.xlsx
+Plano de Manuten*Trimestre*.xlsx
