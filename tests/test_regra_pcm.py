@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 
-from core import config, motor
+from core import config, motor, planilha
 
 
 def _resultado(lanc):
@@ -71,8 +71,19 @@ def test_gerencia_soma_coordenacoes():
     assert abs(r.gerencia.tabela_itens["Contribuição"].sum() - 2.5 / 3) < 1e-9
 
 
+def test_lista_de_ativos_sem_repetir_e_por_depto():
+    df = pd.DataFrame({"Ativo": ["AMV  01", "AMV 01", None, "PN 2", "PN 3"],
+                       "Coord": ["sp.ipa", "SP.IPA", "SP.IPA", "V.SP.PJU", "OUTRA"]})
+    nomes = {"SP.IPA": "V.SP.IPA", "V.SP.PJU": "V.SP.PJU"}
+    lista, sem_depto = planilha.lista_de_ativos(df, "Ativo", "Coord", nomes)
+    assert list(zip(lista["valor"], lista["depto"])) == [("PN 3", ""), ("AMV 01", "V.SP.IPA"), ("PN 2", "V.SP.PJU")]
+    assert sem_depto == 1
+    assert planilha.lista_de_ativos(df, "Ativo", None, nomes)[0]["depto"].eq("").all()
+
+
 if __name__ == "__main__":
     test_teto_por_meta_e_grupo_fora()
     test_fora_do_plano_nao_conta()
     test_gerencia_soma_coordenacoes()
+    test_lista_de_ativos_sem_repetir_e_por_depto()
     print("ok — regra do PCM")

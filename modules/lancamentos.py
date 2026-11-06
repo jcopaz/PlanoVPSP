@@ -60,7 +60,7 @@ def _plano_para_lancar(plano: pd.DataFrame, depto: str, semanas: list[int]) -> p
     return pl
 
 
-def _config_colunas(deptos, metas, equipes, listas_tipo, so_leitura):
+def _config_colunas(deptos, metas, equipes, ativos, listas_tipo, so_leitura):
     sel = st.column_config.SelectboxColumn
     return {
         "id": st.column_config.NumberColumn("#", disabled=True, help="Nº do registro (vazio = linha nova)"),
@@ -69,6 +69,8 @@ def _config_colunas(deptos, metas, equipes, listas_tipo, so_leitura):
         "Data": st.column_config.DateColumn(format="DD/MM/YYYY", required=True),
         "Descrição Meta": sel(options=metas, required=True, width="large"),
         "Equipe": sel(options=equipes),
+        # Sem relação de ativos carregada (Dados → Upload), o campo segue livre.
+        "Ativo": sel(options=ativos, width="medium") if ativos else st.column_config.TextColumn(),
         "Tipo Material": sel(options=listas_tipo("Tipo Material")),
         "Quantidade Programada": st.column_config.NumberColumn(min_value=0, format="%.2f"),
         "Quantidade Realizada": st.column_config.NumberColumn(min_value=0, format="%.2f"),
@@ -218,10 +220,12 @@ def render_lancamentos() -> None:
         base_ed = base
 
     # ---- Grade ----------------------------------------------------------- #
+    relacao = listas_tipo("Ativo")
+    ativos = sorted(set(relacao) | (set(base_ed["Ativo"].dropna().astype(str)) - {""})) if relacao else []
     editado = st.data_editor(
         base_ed, key=f"ed_{chave_pre}", num_rows="fixed" if so_leitura else "dynamic",
         disabled=so_leitura, hide_index=True, width="stretch", height=520,
-        column_config=_config_colunas(deptos, metas, equipes, listas_tipo, so_leitura))
+        column_config=_config_colunas(deptos, metas, equipes, ativos, listas_tipo, so_leitura))
 
     if so_leitura:
         return

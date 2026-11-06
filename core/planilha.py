@@ -282,6 +282,21 @@ def legado_para_v3(arquivo, p: config.Parametros) -> tuple[pd.DataFrame, pd.Data
     return pesos.reset_index(drop=True), plano.reset_index(drop=True), lanc.reset_index(drop=True)
 
 
+def lista_de_ativos(df: pd.DataFrame, col_ativo: str, col_depto: str | None,
+                    deptos: dict[str, str]) -> tuple[pd.DataFrame, int]:
+    """Relação de ativos -> (valor, depto, ativo) sem repetição, e quantas linhas tinham
+    Depto desconhecido. ``deptos``: {nome em maiúsculas: Depto}; Depto vazio = vale para todos."""
+    valor = df[col_ativo].astype("string").str.split().str.join(" ")
+    bruto = (df[col_depto].astype("string").str.strip().str.upper() if col_depto
+             else pd.Series(pd.NA, index=df.index, dtype="string"))
+    out = pd.DataFrame({"valor": valor, "depto": bruto.map(deptos), "bruto": bruto})
+    out = out[out["valor"].fillna("") != ""]
+    sem_depto = int((out["bruto"].fillna("").ne("") & out["depto"].isna()).sum())
+    out["depto"] = out["depto"].fillna("")
+    out = out.drop_duplicates(["valor", "depto"]).drop(columns="bruto").sort_values(["depto", "valor"])
+    return out.assign(ativo=True).reset_index(drop=True), sem_depto
+
+
 def trimestre_dos_dados(plano: pd.DataFrame, lanc: pd.DataFrame) -> tuple[int, int] | None:
     """(ano, trimestre) mais frequente nas datas do plano (ou dos lançamentos)."""
     for df, col in ((plano, "Data Planejada"), (lanc, "Data")):

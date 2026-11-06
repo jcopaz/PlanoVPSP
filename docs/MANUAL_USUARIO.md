@@ -87,6 +87,14 @@ quanto precisa render por semana daqui em diante para fechar 100%.
   Ordens sem Descrição Meta (fora do catálogo do plano) ficam de fora por padrão. Escolha o que gravar (Pesos+Plano e/ou Lançamentos); o que estiver
   marcado **substitui** o que existe naquele trimestre.
 
+## Lista de ativos
+
+Dados → Upload → **Lista de ativos** (PCM/admin): envie o Excel com a relação, escolha a coluna do ativo e,
+se houver, a de Depto ou Coordenação. A coluna **Ativo** da tela de Lançamentos passa a ser lista suspensa;
+com Depto, cada programador vê só os ativos dele. Um novo envio **substitui** a lista inteira. Ajustes
+pontuais: Configurações → Listas → Ativo (mostra os ativos que valem para todos os Deptos). Enquanto
+nenhuma lista for enviada, o campo continua livre.
+
 ## Meus dados estão seguros?
 
 - **O app "dormir" não apaga nada**: os dados ficam no banco (Neon). Confira no rodapé do menu

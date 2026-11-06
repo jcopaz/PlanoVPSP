@@ -78,6 +78,10 @@
 #   Upload bloqueado em trimestre fechado (exceto admin); confirmação quando o upload
 #   apagar lançamentos digitados no app; cópia automática antes de substituir, excluir
 #   ou restaurar, com restauração em Configurações → Trimestres (admin).
+# 5.1.0 (06/11/2026): Dashboard abre no trimestre corrente, pela data de hoje (antes: o
+#   último da lista, ou o último importado), com aviso e botão de volta ao ver outro
+#   trimestre. Lista de ativos por upload (Dados → Upload): lista suspensa da coluna
+#   Ativo em Lançamentos, por Depto quando o arquivo traz a coluna.
 
-APP_VERSION = "5.0.0"
+APP_VERSION = "5.1.0"
 APP_NOME = "Plano VP"

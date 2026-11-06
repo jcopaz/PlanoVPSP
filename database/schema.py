@@ -132,7 +132,7 @@ metas_catalogo = Table(
 listas = Table(
     "listas", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("tipo", String(30), nullable=False),     # Equipe | Justificativa | Status | Tipo Material | Grupo
+    Column("tipo", String(30), nullable=False),     # Equipe | Ativo | Justificativa | Status | Tipo Material | Grupo
     Column("valor", String(120), nullable=False),
     Column("depto", String(20), nullable=False, default=""),   # "" = vale para todos
     Column("ativo", Boolean, nullable=False, default=True),

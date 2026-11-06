@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+from datetime import date
 
 import pandas as pd
 import streamlit as st
@@ -83,14 +84,33 @@ def limpar_cache() -> None:
 
 # region ====================== SESSÃO 2: Trimestre ativo ======================
 
+def trimestre_de_hoje() -> tuple[int, int]:
+    hoje = date.today()
+    return hoje.year, (hoje.month - 1) // 3 + 1
+
+
+def trimestre_corrente(tri: pd.DataFrame) -> int:
+    """id do trimestre da data de hoje; se não existir, o mais recente já iniciado
+    (``tri`` vem ordenado por ano e trimestre)."""
+    agora = trimestre_de_hoje()
+    iniciados = [i for i, k in enumerate(zip(tri["ano"], tri["trimestre"])) if k <= agora]
+    return int(tri.iloc[iniciados[-1] if iniciados else -1]["id"])
+
+
+def voltar_ao_corrente() -> None:
+    """Callback de botão: roda antes do menu lateral, por isso pode limpar o seletor."""
+    set_trimestre_id(trimestre_corrente(trimestres()))
+    st.session_state.pop("sb_trimestre", None)
+
+
 def trimestre_ativo() -> dict | None:
-    """Trimestre escolhido no menu lateral (padrão: o mais recente)."""
+    """Trimestre escolhido no menu lateral (padrão: o corrente, pela data de hoje)."""
     tri = trimestres()
     if tri.empty:
         return None
     tid = get_trimestre_id()
     if tid not in set(tri["id"]):
-        tid = int(tri.iloc[-1]["id"])
+        tid = trimestre_corrente(tri)
         set_trimestre_id(tid)
     return tri.loc[tri["id"] == tid].iloc[0].to_dict()
 

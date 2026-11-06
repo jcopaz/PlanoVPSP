@@ -179,6 +179,14 @@ Realizado sem meta (fora do catálogo) e de trimestres sem plano (ordens 2023–
 **Backup** — Dados → Exportação: Excel do trimestre no modelo v3 (reimportável) ou .zip
 com todos os trimestres + cadastros. Recomendado: exportar o .zip ao fechar cada trimestre.
 
+**Trimestre exibido** — ao entrar, `comum.trimestre_ativo` usa `trimestre_corrente` (o da data de
+hoje; se não existir, o mais recente já iniciado). Upload não muda o trimestre exibido. Outro
+trimestre só pelo menu lateral, com aviso e botão de volta no Dashboard.
+
+**Lista de ativos** — Dados → Upload: `planilha.lista_de_ativos` lê a coluna escolhida e grava em
+`listas` (tipo `Ativo`, com `depto` ou "" = todos), substituindo a lista. Em Lançamentos, a coluna
+Ativo vira lista suspensa quando há lista; valores já lançados fora dela continuam nas opções.
+
 **Proteção dos lançamentos** (5.0.0):
 - Re-upload **substitui, não duplica**: trimestre é único por (ano, trimestre); pesos/plano e
   lançamentos do trimestre são apagados e regravados na mesma transação (erro = nada muda).

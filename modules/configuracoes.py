@@ -3,7 +3,7 @@
 # Abas (cada uma com a sua regra de permissão — ver auth/permissions.py):
 #   SLA e Unidades  produção esperada da equipe/dia por Depto x Meta (programador: só o seu Depto)
 #   Equipes         equipes de cada Depto (menu da tela de Lançamentos)
-#   Listas          Justificativas, Status, Tipo Material, Grupo           (admin/PCM)
+#   Listas          Ativos, Justificativas, Status, Tipo Material, Grupo   (admin/PCM)
 #   Coordenações    de-para Depto -> Coordenação -> Centro de Custo         (admin/PCM)
 #   Trimestres      janela de semanas, abrir/fechar, excluir, restaurar     (admin/PCM;
 #                   excluir e restaurar cópia de lançamentos: admin)
@@ -86,7 +86,7 @@ def _aba_equipes():
 # region ====================== SESSÃO 2: Sistema (admin/PCM) ======================
 
 def _aba_listas():
-    tipo = st.selectbox("Lista", ["Justificativa", "Status", "Tipo Material", "Grupo"], key="lst_tipo")
+    tipo = st.selectbox("Lista", ["Ativo", "Justificativa", "Status", "Tipo Material", "Grupo"], key="lst_tipo")
     _, _, _, listas = comum.cadastros()
     df = listas[(listas["tipo"] == tipo) & (listas["depto"] == "")][["valor", "ativo"]].reset_index(drop=True)
     df["ativo"] = df["ativo"].astype(bool)

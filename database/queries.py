@@ -540,7 +540,7 @@ def salvar_listas(tipo: str, df: pd.DataFrame, usuario: str, deptos: list[str] |
             q = q.where(S.listas.c.depto.in_(deptos))
         conn.execute(q)
         if linhas:
-            conn.execute(insert(S.listas), list(linhas.values()))
+            conn.execute(insert(S.listas), _cabe(S.listas, list(linhas.values())))
         _auditar(conn, usuario, "salvar", "listas", detalhe={"tipo": tipo, "linhas": len(linhas)})
         _bump(conn)
 

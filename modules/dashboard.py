@@ -1,5 +1,8 @@
 # modules/dashboard.py — Resultado do plano do trimestre ativo
 #
+# Abre sempre no trimestre corrente (comum.trimestre_corrente); outro trimestre
+# só por escolha no menu lateral, com aviso e botão para voltar.
+#
 # Abas:
 #   Resumo           cartões da Gerência + 1 cartão por coordenação + quadro-resumo
 #   Gerencial        curva da Gerência, curvas das coordenações lado a lado, atividades
@@ -27,7 +30,7 @@ def _cartoes(rf: fisico.ResultadoFisico, sem_fim: int) -> None:
     meta = float(meta.iloc[0]) if len(meta) else 0.0
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        card("🚀 Aderência atual", pct(k["aderencia_atual"]),
+        card("🚀 Aderência do trimestre", pct(k["aderencia_atual"]),
              f"Meta PCM até a sem. {rf.semana_atual}: <b>{pct(meta)}</b>")
     with c2:
         card("🎯 Projeção de fechamento", pct(k["aderencia_projetada"]),
@@ -225,9 +228,19 @@ def render_dashboard() -> None:
     t = comum.exige_trimestre()
     r = comum.resultado(int(t["id"]))
     status = "🔒 fechado" if t["status"] == "fechado" else "aberto"
+    padrao = int(t["id"]) == comum.trimestre_corrente(comum.trimestres())
+    corrente = (t["ano"], t["trimestre"]) == comum.trimestre_de_hoje()
     titulo(f"Resultado do Plano — {t['rotulo']}",
+           ("Trimestre corrente · " if corrente else "") +
            f"Semanas {t['semana_inicio']} a {t['semana_fim']} · {status} · "
            f"{int(t['linhas_plano'])} linhas de plano · {int(t['lancamentos'])} lançamentos")
+    if padrao and not corrente:
+        ano, tri = comum.trimestre_de_hoje()
+        st.info(f"O {tri}º tri/{ano} ainda não foi carregado; mostrando o **{t['rotulo']}**, o mais recente.")
+    elif not padrao:
+        c1, c2 = st.columns([4, 1])
+        c1.info(f"Você está vendo o **{t['rotulo']}**, que não é o trimestre corrente.")
+        c2.button("↩️ Trimestre corrente", on_click=comum.voltar_ao_corrente, width="stretch")
     if r.avisos:
         with st.expander(f"⚠️ {len(r.avisos)} aviso(s) sobre os dados"):
             for a in r.avisos:

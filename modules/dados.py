@@ -8,6 +8,8 @@
 #   B) Planilha de trimestre — modelo v3 (inclusive backup exportado daqui) ou a
 #      planilha antiga (Diário + Planilha de Peso). Serve para carregar o
 #      HISTÓRICO (trimestres passados com plano e realizado).
+#   C) Lista de ativos — relação em Excel; vira a lista suspensa da coluna Ativo
+#      na tela de Lançamentos (substitui a lista inteira).
 #   Proteções: trimestre FECHADO não aceita upload (exceto administrador);
 #   se o upload for apagar lançamentos digitados no app, pede confirmação;
 #   o banco guarda cópia antes de substituir (restaurável em Configurações).
@@ -24,7 +26,7 @@ import pandas as pd
 import streamlit as st
 
 from auth import permissions as perm
-from auth.session import get_login, set_trimestre_id
+from auth.session import get_login
 from core import config, importar_pcm, modelo, motor, planilha
 from core.ui import titulo
 from database import queries as q
@@ -81,7 +83,6 @@ def _gravar(ano, tri, pesos, plano, lanc, trocar_plano: bool, trocar_lanc: bool)
                       for d, e in zip(df["Depto"], df["Equipe"]) if pd.notna(d) and pd.notna(e) and str(e).strip()}
     n_eq = q.adicionar_equipes(pares, usuario)
     comum.limpar_cache()
-    set_trimestre_id(tid)
     return f"✅ {tri}º tri/{ano}: " + " + ".join(partes) + (f" · {n_eq} equipe(s) nova(s)" if n_eq else "")
 
 
@@ -323,6 +324,61 @@ def _upload_planilha():
     if st.button("📥 Importar planilha", type="primary", disabled=not ((trocar_plano or trocar_lanc) and ok)):
         _executar(lambda: _gravar(ano, tri, pesos, plano, lanc, trocar_plano, trocar_lanc))
 
+
+def _coluna_provavel(colunas: list[str], *termos: str) -> int | None:
+    return next((i for i, c in enumerate(colunas) if any(t in str(c).lower() for t in termos)
+                 and "centro" not in str(c).lower()), None)
+
+
+def _upload_ativos():
+    _, coords, _, listas = comum.cadastros()
+    atuais = int((listas["tipo"] == "Ativo").sum())
+    st.markdown("Excel com a relação de ativos: vira a **lista suspensa** da coluna Ativo na tela de Lançamentos. "
+                "Com uma coluna de Depto ou Coordenação, cada programador vê só os ativos dele.")
+    st.caption(f"Hoje no sistema: **{atuais}** ativo(s). Enviar um arquivo **substitui** a lista inteira.")
+    f = st.file_uploader("Relação de ativos", type=["xlsx", "xlsm"], key="up_ativos")
+    if not f:
+        return
+    try:
+        abas = pd.ExcelFile(f)
+        aba = st.selectbox("Aba", abas.sheet_names) if len(abas.sheet_names) > 1 else abas.sheet_names[0]
+        df = abas.parse(aba, dtype=str)
+    except Exception as e:  # noqa: BLE001
+        st.error(f"Não foi possível ler o arquivo: {e}")
+        return
+    colunas = [str(c) for c in df.columns]
+    df.columns = colunas
+    if not colunas:
+        st.error("A aba está vazia.")
+        return
+    nenhuma = "(nenhuma — vale para todos os Deptos)"
+    c1, c2 = st.columns(2)
+    col_ativo = c1.selectbox("Coluna do ativo", colunas, index=_coluna_provavel(colunas, "ativo") or 0)
+    i_depto = _coluna_provavel(colunas, "depto", "departamento", "coordena")
+    col_depto = c2.selectbox("Coluna do Depto (opcional)", [nenhuma] + colunas,
+                             index=0 if i_depto is None else i_depto + 1)
+    nomes = {str(n).strip().upper(): d for n, d in zip(coords["coordenacao"], coords["depto"])}
+    nomes |= {str(d).strip().upper(): d for d in coords["depto"]}
+    lista, sem_depto = planilha.lista_de_ativos(df, col_ativo, None if col_depto == nenhuma else col_depto, nomes)
+    if lista.empty:
+        st.error("Nenhum ativo na coluna escolhida.")
+        return
+    st.markdown(f"#### {len(lista)} ativo(s)")
+    st.dataframe(lista.assign(depto=lista["depto"].replace("", "Todos"))
+                 .groupby("depto", as_index=False).size().rename(columns={"depto": "Depto", "size": "Ativos"}),
+                 hide_index=True)
+    with st.expander("Pré-visualizar"):
+        st.dataframe(lista[["valor", "depto"]].head(200).rename(columns={"valor": "Ativo", "depto": "Depto"}),
+                     hide_index=True, width="stretch")
+    if sem_depto:
+        st.warning(f"{sem_depto} linha(s) com Depto desconhecido ficam visíveis para todos os Deptos.")
+    if st.button("📥 Gravar lista de ativos", type="primary"):
+        def gravar():
+            q.salvar_listas("Ativo", lista, get_login())
+            comum.limpar_cache()
+            return f"✅ Lista de ativos: {len(lista)} ativo(s)."
+        _executar(gravar)
+
 # endregion
 
 
@@ -378,11 +434,14 @@ def render_dados() -> None:
             st.info("🔒 Upload disponível para os perfis Administrador e PCM.")
         else:
             tipo = st.radio("O que você vai enviar?", ["Plano do trimestre (exports do PCM)",
-                                                      "Planilha de trimestre (modelo v3, backup ou planilha antiga)"],
+                                                      "Planilha de trimestre (modelo v3, backup ou planilha antiga)",
+                                                      "Lista de ativos"],
                             horizontal=True)
             if tipo.startswith("Plano"):
                 _upload_pcm()
-            else:
+            elif tipo.startswith("Planilha"):
                 _upload_planilha()
+            else:
+                _upload_ativos()
     with abas[1]:
         _exportar()
