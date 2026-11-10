@@ -258,14 +258,11 @@ def render_dashboard() -> None:
     if t["linhas_plano"] == 0:
         st.warning("Este trimestre ainda não tem plano. Importe o plano do PCM em **Dados → Upload**.")
 
-    abas = st.tabs(["📊 Resumo", "🏢 Gerencial", "📍 Por Coordenação", "💰 Financeiro", "📈 Evolução"])
-    with abas[0]:
-        _aba_resumo(r)
-    with abas[1]:
-        _aba_gerencial(r)
-    with abas[2]:
-        _aba_coordenacao(r)
-    with abas[3]:
-        _aba_financeiro(r)
-    with abas[4]:
-        _aba_evolucao()
+    # key + on_change: a aba escolhida sobrevive aos filtros; só a aberta é calculada
+    abas = st.tabs(["📊 Resumo", "🏢 Gerencial", "📍 Por Coordenação", "💰 Financeiro", "📈 Evolução"],
+                   key="abas_dash", on_change="rerun")
+    for tab, fn in zip(abas, (lambda: _aba_resumo(r), lambda: _aba_gerencial(r), lambda: _aba_coordenacao(r),
+                              lambda: _aba_financeiro(r), _aba_evolucao)):
+        if tab.open:
+            with tab:
+                fn()

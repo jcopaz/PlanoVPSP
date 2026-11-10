@@ -484,28 +484,33 @@ def _exportar():
 # endregion
 
 
+def _upload() -> None:
+    if not perm.pode_upload():
+        st.info("🔒 Upload disponível para os perfis Administrador e PCM.")
+        return
+    tipo = st.radio("O que você vai enviar?", ["Plano do trimestre (exports do PCM)",
+                                              "Realizado do trimestre (export do Power BI)",
+                                              "Planilha de trimestre (modelo v3, backup ou planilha antiga)",
+                                              "Lista de ativos"],
+                    horizontal=True)
+    if tipo.startswith("Plano"):
+        _upload_pcm()
+    elif tipo.startswith("Realizado"):
+        _upload_realizado()
+    elif tipo.startswith("Planilha"):
+        _upload_planilha()
+    else:
+        _upload_ativos()
+
+
 def render_dados() -> None:
     titulo("Dados", "Upload do plano do PCM e do histórico · exportação da planilha (backup)")
     msg = st.session_state.pop("msg_dados", None)
     if msg:
         st.success(msg)
-    abas = st.tabs(["⬆️ Upload", "⬇️ Exportação"])
-    with abas[0]:
-        if not perm.pode_upload():
-            st.info("🔒 Upload disponível para os perfis Administrador e PCM.")
-        else:
-            tipo = st.radio("O que você vai enviar?", ["Plano do trimestre (exports do PCM)",
-                                                      "Realizado do trimestre (export do Power BI)",
-                                                      "Planilha de trimestre (modelo v3, backup ou planilha antiga)",
-                                                      "Lista de ativos"],
-                            horizontal=True)
-            if tipo.startswith("Plano"):
-                _upload_pcm()
-            elif tipo.startswith("Realizado"):
-                _upload_realizado()
-            elif tipo.startswith("Planilha"):
-                _upload_planilha()
-            else:
-                _upload_ativos()
-    with abas[1]:
-        _exportar()
+    # key + on_change: a aba fica escolhida após o rerun de um upload; só a aberta executa
+    abas = st.tabs(["⬆️ Upload", "⬇️ Exportação"], key="abas_dados", on_change="rerun")
+    for tab, fn in zip(abas, (_upload, _exportar)):
+        if tab.open:
+            with tab:
+                fn()

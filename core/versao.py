@@ -91,6 +91,9 @@
 #   Financeiro com seleção das linhas do gráfico.
 # 5.3.1 (10/11/2026): percentuais com 2 casas (cartões, rótulos e tooltips: "95,90%");
 #   menu lateral mostra só a versão — o banco só aparece como alerta se cair no SQLite local.
+# 5.3.2 (10/11/2026): abas (Configurações, Dados, Dashboard) guardam a aba escolhida —
+#   antes um "Salvar" (ex.: resetar senha) voltava para a 1ª aba; só a aba aberta executa.
+#   Versão centralizada no menu lateral.
 
-APP_VERSION = "5.3.1"
+APP_VERSION = "5.3.2"
 APP_NOME = "Plano VP"

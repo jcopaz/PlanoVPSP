@@ -305,7 +305,11 @@ def render_configuracoes() -> None:
             ("👥 Usuários", _aba_usuarios, perm.is_admin()),
             ("🧾 Auditoria", _aba_auditoria, perm.is_admin())]
     abas = [a for a in abas if a[2]]
-    for tab, (_, fn, _) in zip(st.tabs([a[0] for a in abas]), abas):
+    # key + on_change: a aba escolhida sobrevive ao rerun de um "Salvar" (sem isso voltava
+    # para a primeira) e só a aba aberta é executada.
+    for tab, (_, fn, _) in zip(st.tabs([a[0] for a in abas], key="abas_cfg", on_change="rerun"), abas):
+        if not tab.open:
+            continue
         with tab:
             if not comum.deptos_cadastrados() and fn in (_aba_sla, _aba_equipes):
                 st.info("Cadastre as coordenações primeiro.")
