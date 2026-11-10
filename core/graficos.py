@@ -19,8 +19,8 @@ alt.data_transformers.disable_max_rows()
 
 
 def pct_br(v: pd.Series) -> pd.Series:
-    """0.30756 -> "30,8%" (rótulos em português; o formato "%" do Vega sai com 6 casas)."""
-    return v.map(lambda x: "" if pd.isna(x) else f"{x * 100:.1f}%".replace(".", ","))
+    """0.30756 -> "30,76%" (rótulos em português, 2 casas; o formato "%" do Vega sai com 6 casas)."""
+    return v.map(lambda x: "" if pd.isna(x) else f"{x * 100:.2f}%".replace(".", ","))
 
 
 def _rotulos(df: pd.DataFrame, x, cor, abaixo: set[str], campo: str, grupo: list[str]) -> alt.LayerChart:

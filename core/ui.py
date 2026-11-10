@@ -64,7 +64,7 @@ def card(titulo_card: str, valor: str, sub: str = "", classe: str = "") -> None:
         unsafe_allow_html=True)
 
 
-def pct(v, casas: int = 1) -> str:
+def pct(v, casas: int = 2) -> str:
     try:
         return f"{float(v) * 100:.{casas}f}%".replace(".", ",")
     except (TypeError, ValueError):

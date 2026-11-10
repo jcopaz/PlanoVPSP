@@ -60,4 +60,6 @@ def render_sidebar() -> None:
         if st.button("🚪  Sair", key="btn_sair", width="stretch"):
             clear_session()
             st.rerun()
-        st.caption(f"v{APP_VERSION} · {descricao_banco()}")
+        st.caption(f"v{APP_VERSION}")
+        if descricao_banco().startswith("SQLite"):   # sem o banco do Neon: o que for gravado some ao reiniciar
+            st.warning("⚠️ Banco local temporário (sem conexão com o Neon). Não lance dados e avise o administrador.")

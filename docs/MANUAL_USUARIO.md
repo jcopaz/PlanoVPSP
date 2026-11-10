@@ -105,9 +105,9 @@ nenhuma lista for enviada, o campo continua livre.
 
 ## Meus dados estão seguros?
 
-- **O app "dormir" não apaga nada**: os dados ficam no banco (Neon). Confira no rodapé do menu
-  lateral: deve aparecer `PostgreSQL · …`. Se aparecer `SQLite local`, **não lance nada** e avise o
-  administrador (o app perdeu a ligação com o banco e o que for gravado some ao reiniciar).
+- **O app "dormir" não apaga nada**: os dados ficam no banco (Neon). Se o app perder a ligação com o
+  banco, aparece no menu lateral o aviso **"Banco local temporário"**: nesse caso **não lance nada** e
+  avise o administrador (o que for gravado some ao reiniciar).
 - **Subir de novo não duplica**: substitui os dados daquele trimestre.
 - Se um upload for **apagar lançamentos digitados no app**, a tela avisa quantos são e só
   continua se você marcar "Entendo e quero substituir".

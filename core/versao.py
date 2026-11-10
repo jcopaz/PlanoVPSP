@@ -89,6 +89,8 @@
 #   coordenações) e na base de cada barra da Evolução (tabelas removidas); eixos e
 #   tooltips com % correto (o "%" do Vega saía com 6 casas e cortava o eixo: "0%").
 #   Financeiro com seleção das linhas do gráfico.
+# 5.3.1 (10/11/2026): percentuais com 2 casas (cartões, rótulos e tooltips: "95,90%");
+#   menu lateral mostra só a versão — o banco só aparece como alerta se cair no SQLite local.
 
-APP_VERSION = "5.3.0"
+APP_VERSION = "5.3.1"
 APP_NOME = "Plano VP"
