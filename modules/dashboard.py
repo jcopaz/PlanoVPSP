@@ -192,8 +192,14 @@ def _aba_financeiro(r: motor.ResultadoTrimestre) -> None:
     with c3:
         card("🔮 Projeção (R$)", reais(fin.envelope_orcado * k["aderencia_projetada"]),
              f"{pct(k['aderencia_projetada'])} do envelope", k["classe_tendencia"])
-    ref = st.checkbox("Mostrar referências oficiais (orçamento / SAP)", value=True)
-    st.altair_chart(graficos.curva_financeira(fin.curva, rf.semana_atual, ref), width="stretch")
+    disponiveis = [s for s, col in zip(graficos.SERIES_FINANCEIRAS,
+                                       ["orcado_plan", "realizado", "projetado", "ref_orcado", "ref_realizado"])
+                   if col in fin.curva.columns]
+    series = st.pills("Linhas", disponiveis, selection_mode="multi", default=disponiveis, key="fin_series")
+    if series:
+        st.altair_chart(graficos.curva_financeira(fin.curva, rf.semana_atual, series), width="stretch")
+    else:
+        st.caption("Escolha ao menos uma linha.")
     if fin.tabela_itens is not None and not fin.tabela_itens.empty:
         st.markdown("##### 🧾 OPEX rateado por item")
         st.dataframe(fin.tabela_itens, hide_index=True, width="stretch", column_config={
@@ -218,15 +224,11 @@ def _aba_evolucao() -> None:
     h = hist[hist["Visão"].isin(sel)]
     st.markdown("##### Aderência por trimestre")
     st.altair_chart(graficos.evolucao(h), width="stretch")
-    piv = h.pivot_table(index="Visão", columns="Período", values="Aderência", sort=False)
-    st.dataframe(piv, width="stretch",
-                 column_config={c: FMT_PCT for c in piv.columns})
     anual = motor.historico_anual(h)
     if not anual.empty:
-        st.markdown("##### Aderência anual (média dos trimestres carregados)")
+        n = ", ".join(f"{a}: {t} tri" for a, t in anual.groupby("Ano")["Trimestres"].max().items())
+        st.markdown(f"##### Aderência anual (média dos trimestres carregados — {n})")
         st.altair_chart(graficos.evolucao(anual), width="stretch")
-        st.dataframe(anual[["Ano", "Visão", "Aderência", "Trimestres"]], hide_index=True,
-                     width="stretch", column_config={"Aderência": FMT_PCT})
     st.caption("Trimestre em andamento entra com a aderência acumulada até a última semana lançada.")
 
 # endregion

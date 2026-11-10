@@ -23,6 +23,7 @@ regra de cálculo em [REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md).
 | 04/11/2026 | 5.0.0 | **Proteção dos lançamentos**: corrige erro do Neon no upload (texto > coluna); upload bloqueado em trimestre fechado; confirmação antes de apagar lançamentos do app; cópia automática + restauração. |
 | 06/11/2026 | 5.1.0 | Dashboard abre no **trimestre corrente** (data de hoje); **lista de ativos** por upload, como lista suspensa em Lançamentos. |
 | 10/11/2026 | 5.2.0 | Upload do **Realizado do Power BI por Depto** (para quem não lança no app); filtro de linhas no gráfico Gerencial. |
+| 10/11/2026 | 5.3.0 | Valor da aderência escrito nos pontos das curvas e nas barras da Evolução (sem tabelas); eixo % corrigido; seleção de linhas no Financeiro. |
 
 ---
 

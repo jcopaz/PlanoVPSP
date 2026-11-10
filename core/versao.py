@@ -85,6 +85,10 @@
 # 5.2.0 (10/11/2026): Upload "Realizado do trimestre (export do Power BI)": troca os
 #   lançamentos só dos Deptos escolhidos (padrão: os sem lançamento digitado no app).
 #   Gráfico Gerencial das coordenações com filtro de coordenações e de linhas.
+# 5.3.0 (10/11/2026): valor da aderência escrito em cada ponto das curvas (Gerência e
+#   coordenações) e na base de cada barra da Evolução (tabelas removidas); eixos e
+#   tooltips com % correto (o "%" do Vega saía com 6 casas e cortava o eixo: "0%").
+#   Financeiro com seleção das linhas do gráfico.
 
-APP_VERSION = "5.2.0"
+APP_VERSION = "5.3.0"
 APP_NOME = "Plano VP"
