@@ -125,8 +125,16 @@ def _aba_gerencial(r: motor.ResultadoTrimestre) -> None:
     st.altair_chart(graficos.curva_fisica(r.gerencia.curva, r.gerencia.semana_atual), width="stretch")
     if r.coords:
         st.markdown("##### Coordenações: Realizado (linha cheia) x Meta PCM (tracejada)")
-        st.altair_chart(graficos.curvas_coordenacoes({c: rf.curva for c, rf in r.coords.items()},
-                                                     r.gerencia.semana_atual), width="stretch")
+        c1, c2 = st.columns([3, 2])
+        todas = list(r.coords)
+        sel = c1.multiselect("Coordenações", todas, default=todas, key="ger_coords")
+        tipos = c2.pills("Linhas", ["Realizado", "Meta PCM"], selection_mode="multi",
+                         default=["Realizado", "Meta PCM"], key="ger_tipos")
+        if sel and tipos:
+            st.altair_chart(graficos.curvas_coordenacoes({c: r.coords[c].curva for c in sel},
+                                                         r.gerencia.semana_atual, tipos, todas), width="stretch")
+        else:
+            st.caption("Escolha ao menos uma coordenação e um tipo de linha.")
     st.markdown("##### Quadro por coordenação")
     _quadro_resumo(r)
     st.markdown("##### Atividades (todas as coordenações)")

@@ -87,6 +87,14 @@ quanto precisa render por semana daqui em diante para fechar 100%.
   Ordens sem Descrição Meta (fora do catálogo do plano) ficam de fora por padrão. Escolha o que gravar (Pesos+Plano e/ou Lançamentos); o que estiver
   marcado **substitui** o que existe naquele trimestre.
 
+## Realizado pelo Power BI (quando a equipe não lança no app)
+
+Dados → Upload → **Realizado do trimestre (export do Power BI)** (PCM/admin): exporte do Power BI do PCM a
+tabela de ordens do trimestre (a mesma do "Realizado 1 ao 4º Tri") e envie. A tela mostra, por Depto, quantas
+linhas vieram, quantas há hoje e quantas foram **digitadas no app**. Marque os Deptos a atualizar — por padrão
+só os que não lançam no app, para a mesma ordem não contar duas vezes. Só os Deptos marcados são
+substituídos; pode reenviar toda semana (substitui, não duplica).
+
 ## Lista de ativos
 
 Dados → Upload → **Lista de ativos** (PCM/admin): envie o Excel com a relação, escolha a coluna do ativo e,

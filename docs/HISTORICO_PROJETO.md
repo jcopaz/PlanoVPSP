@@ -22,6 +22,7 @@ regra de cálculo em [REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md).
 | 04/11/2026 | 4.2.0 | **Gerência pela regra do PCM** (export consolidado `data (10)`): Σ pesos, DEPTO soma volume, ATIVO soma realizado limitado. |
 | 04/11/2026 | 5.0.0 | **Proteção dos lançamentos**: corrige erro do Neon no upload (texto > coluna); upload bloqueado em trimestre fechado; confirmação antes de apagar lançamentos do app; cópia automática + restauração. |
 | 06/11/2026 | 5.1.0 | Dashboard abre no **trimestre corrente** (data de hoje); **lista de ativos** por upload, como lista suspensa em Lançamentos. |
+| 10/11/2026 | 5.2.0 | Upload do **Realizado do Power BI por Depto** (para quem não lança no app); filtro de linhas no gráfico Gerencial. |
 
 ---
 

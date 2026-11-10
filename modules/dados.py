@@ -8,6 +8,9 @@
 #   B) Planilha de trimestre — modelo v3 (inclusive backup exportado daqui) ou a
 #      planilha antiga (Diário + Planilha de Peso). Serve para carregar o
 #      HISTÓRICO (trimestres passados com plano e realizado).
+#   D) Realizado do trimestre — export "Realizado" do Power BI do PCM, a qualquer
+#      momento do trimestre: troca os lançamentos SÓ dos Deptos escolhidos (os que
+#      lançam no app ficam de fora por padrão — evita contar a mesma ordem 2 vezes).
 #   C) Lista de ativos — relação em Excel; vira a lista suspensa da coluna Ativo
 #      na tela de Lançamentos (substitui a lista inteira).
 #   Proteções: trimestre FECHADO não aceita upload (exceto administrador);
@@ -325,6 +328,64 @@ def _upload_planilha():
         _executar(lambda: _gravar(ano, tri, pesos, plano, lanc, trocar_plano, trocar_lanc))
 
 
+def _upload_realizado():
+    st.markdown("Export **Realizado** do Power BI do PCM (ordens do SAP), a qualquer momento do trimestre — "
+                "serve para os Deptos que **não lançam no app**. Só os Deptos marcados são substituídos.")
+    f = st.file_uploader("Export Realizado", type=["xlsx"], key="up_realizado")
+    if not f:
+        return
+    if planilha.identificar(comum.salvar_temporario(f)) != "pcm_realizado":
+        st.error("Não é o export Realizado do PCM (precisa das colunas Nº ordem, Qtd. Real, Considera Plano?...).")
+        return
+    tri_df = comum.trimestres()
+    com_plano = tuple((int(a), int(t)) for a, t, n in
+                      zip(tri_df.get("ano", []), tri_df.get("trimestre", []), tri_df.get("linhas_plano", [])) if n > 0)
+    try:
+        hist, avisos = _historico_pcm(None, f.getvalue(), None, tuple(comum.deptos_cadastrados()), False, com_plano)
+    except Exception as e:  # noqa: BLE001
+        st.error(f"Não foi possível ler o export: {e}")
+        return
+    for a in avisos:
+        st.caption("ℹ️ " + a)
+    hist = {k: d for k, d in hist.items() if d.get("lanc") is not None and not d["lanc"].empty}
+    if not hist:
+        st.error("Nenhum lançamento de trimestre com plano carregado no sistema.")
+        return
+    rotulos = {f"{t}º tri/{a}": (a, t) for a, t in sorted(hist, reverse=True)}
+    hoje = comum.trimestre_de_hoje()
+    escolha = st.selectbox("Trimestre", list(rotulos), index=list(rotulos.values()).index(hoje)
+                           if hoje in rotulos.values() else 0, key="up_real_tri")
+    ano, tri = rotulos[escolha]
+    if _fechado(ano, tri):
+        st.error(f"🔒 O {escolha} está **fechado**: só o administrador pode substituir.")
+        return
+    lanc = hist[(ano, tri)]["lanc"]
+    ex = _ja_existe(ano, tri)
+    hoje_df = q.lancamentos_por_depto(int(ex["id"])) if ex else pd.DataFrame(columns=["depto", "total", "app"])
+    resumo = (lanc.groupby("Depto").agg(**{"No export": ("Depto", "size"),
+                                            "No plano (Sim)": ("No Plano", lambda s: int((s == "Sim").sum()))})
+              .join(hoje_df.set_index("depto").rename(columns={"total": "Hoje no sistema", "app": "Digitados no app"}))
+              .fillna(0).astype(int).reset_index())
+    st.dataframe(resumo, hide_index=True, width="stretch")
+    sugeridos = resumo.loc[resumo["Digitados no app"] == 0, "Depto"].tolist()
+    deptos = st.multiselect("Deptos a atualizar pelo export", resumo["Depto"].tolist(), default=sugeridos,
+                            key=f"up_real_deptos_{escolha}",
+                            help="Por padrão ficam de fora os Deptos com lançamentos digitados no app.")
+    app = int(resumo.loc[resumo["Depto"].isin(deptos), "Digitados no app"].sum())
+    ok = True
+    if app:
+        st.warning(f"⚠️ Os Deptos marcados têm **{app}** lançamento(s) digitados no app, que serão apagados "
+                   "(fica cópia, restaurável em Configurações → Trimestres).")
+        ok = st.checkbox("Entendo e quero substituir esses lançamentos", key="conf_subst_real")
+    if st.button("📥 Atualizar realizado", type="primary", disabled=not (deptos and ok)):
+        def gravar():
+            tid = q.garantir_trimestre(int(ano), int(tri), get_login())
+            n = q.substituir_lancamentos(tid, lanc, get_login(), deptos=deptos)
+            comum.limpar_cache()
+            return f"✅ {escolha}: {n} lançamento(s) do export em {', '.join(deptos)}."
+        _executar(gravar)
+
+
 def _coluna_provavel(colunas: list[str], *termos: str) -> int | None:
     return next((i for i, c in enumerate(colunas) if any(t in str(c).lower() for t in termos)
                  and "centro" not in str(c).lower()), None)
@@ -434,11 +495,14 @@ def render_dados() -> None:
             st.info("🔒 Upload disponível para os perfis Administrador e PCM.")
         else:
             tipo = st.radio("O que você vai enviar?", ["Plano do trimestre (exports do PCM)",
+                                                      "Realizado do trimestre (export do Power BI)",
                                                       "Planilha de trimestre (modelo v3, backup ou planilha antiga)",
                                                       "Lista de ativos"],
                             horizontal=True)
             if tipo.startswith("Plano"):
                 _upload_pcm()
+            elif tipo.startswith("Realizado"):
+                _upload_realizado()
             elif tipo.startswith("Planilha"):
                 _upload_planilha()
             else:

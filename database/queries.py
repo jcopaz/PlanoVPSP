@@ -17,7 +17,7 @@ import math
 from datetime import date, datetime
 
 import pandas as pd
-from sqlalchemy import Date, DateTime, String, and_, delete, func, insert, or_, select, update
+from sqlalchemy import Date, DateTime, String, and_, case, delete, func, insert, or_, select, update
 
 from database import schema as S
 from database.client import get_engine
@@ -331,20 +331,25 @@ def substituir_plano(tid: int, pesos_df: pd.DataFrame, plano_df: pd.DataFrame, u
     return len(lp), len(ll)
 
 
-def substituir_lancamentos(tid: int, lanc_df: pd.DataFrame, usuario: str) -> int:
-    """Troca TODOS os lançamentos do trimestre (upload). Antes, guarda cópia em lancamentos_copia."""
+def substituir_lancamentos(tid: int, lanc_df: pd.DataFrame, usuario: str, deptos: list[str] | None = None) -> int:
+    """Troca os lançamentos do trimestre (upload) — todos, ou só os dos ``deptos``.
+    Antes, guarda cópia do trimestre em lancamentos_copia."""
     agora = datetime.now()
     linhas = []
     for r in lanc_df.to_dict("records"):
         ln = linha_lancamento(r)
-        if ln:
+        if ln and (deptos is None or ln["depto"] in deptos):
             linhas.append({**ln, "trimestre_id": tid, "origem": "upload", "criado_por": usuario, "criado_em": agora})
+    apagar = S.lancamentos.c.trimestre_id == tid
+    if deptos is not None:
+        apagar = and_(apagar, S.lancamentos.c.depto.in_(deptos))
     with get_engine().begin() as conn:
         _copiar_lancamentos(conn, tid, "upload", usuario)
-        conn.execute(delete(S.lancamentos).where(S.lancamentos.c.trimestre_id == tid))
+        conn.execute(delete(S.lancamentos).where(apagar))
         if linhas:
             conn.execute(insert(S.lancamentos), _cabe(S.lancamentos, linhas))
-        _auditar(conn, usuario, "substituir_lancamentos", "lancamentos", tid, {"linhas": len(linhas)})
+        _auditar(conn, usuario, "substituir_lancamentos", "lancamentos", tid,
+                 {"linhas": len(linhas), "deptos": deptos or "todos"})
         _bump(conn)
     return len(linhas)
 
@@ -393,6 +398,16 @@ def lancamentos_do_app() -> dict[int, int]:
         return dict(conn.execute(select(c.trimestre_id, func.count())
                                  .where(or_(c.origem == "app", c.alterado_por.is_not(None)))
                                  .group_by(c.trimestre_id)).fetchall())
+
+
+def lancamentos_por_depto(tid: int) -> pd.DataFrame:
+    """Depto, total de lançamentos e quantos foram digitados/corrigidos no app."""
+    c = S.lancamentos.c
+    do_app = func.sum(case((or_(c.origem == "app", c.alterado_por.is_not(None)), 1), else_=0))
+    with get_engine().connect() as conn:
+        df = _df(conn, select(c.depto, func.count().label("total"), do_app.label("app"))
+                 .where(c.trimestre_id == tid).group_by(c.depto))
+    return df.astype({"total": int, "app": int}) if not df.empty else df
 
 
 def _copiar_lancamentos(conn, tid: int, motivo: str, usuario: str) -> None:

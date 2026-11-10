@@ -82,6 +82,9 @@
 #   último da lista, ou o último importado), com aviso e botão de volta ao ver outro
 #   trimestre. Lista de ativos por upload (Dados → Upload): lista suspensa da coluna
 #   Ativo em Lançamentos, por Depto quando o arquivo traz a coluna.
+# 5.2.0 (10/11/2026): Upload "Realizado do trimestre (export do Power BI)": troca os
+#   lançamentos só dos Deptos escolhidos (padrão: os sem lançamento digitado no app).
+#   Gráfico Gerencial das coordenações com filtro de coordenações e de linhas.
 
-APP_VERSION = "5.1.0"
+APP_VERSION = "5.2.0"
 APP_NOME = "Plano VP"

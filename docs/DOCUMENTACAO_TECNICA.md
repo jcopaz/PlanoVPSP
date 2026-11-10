@@ -183,6 +183,12 @@ com todos os trimestres + cadastros. Recomendado: exportar o .zip ao fechar cada
 hoje; se não existir, o mais recente já iniciado). Upload não muda o trimestre exibido. Outro
 trimestre só pelo menu lateral, com aviso e botão de volta no Dashboard.
 
+**Realizado do trimestre** — Dados → Upload: `importar_pcm.montar_historico` só com o Realizado →
+`queries.substituir_lancamentos(..., deptos=[...])` apaga e regrava apenas os Deptos escolhidos (cópia do
+trimestre antes). Padrão: Deptos sem lançamento digitado no app (`queries.lancamentos_por_depto`) — uma
+fonte por Depto, sem contar a mesma ordem duas vezes. Gráfico Gerencial: filtro de coordenações e de
+linhas (`graficos.curvas_coordenacoes(tipos, todas)`, cor fixa por coordenação).
+
 **Lista de ativos** — Dados → Upload: `planilha.lista_de_ativos` lê a coluna escolhida e grava em
 `listas` (tipo `Ativo`, com `depto` ou "" = todos), substituindo a lista. Em Lançamentos, a coluna
 Ativo vira lista suspensa quando há lista; valores já lançados fora dela continuam nas opções.

@@ -47,11 +47,16 @@ def curva_fisica(curva: pd.DataFrame, semana_atual: int) -> alt.Chart:
     return (ch + regua).properties(height=460).configure_view(strokeOpacity=0)
 
 
-def curvas_coordenacoes(curvas: dict[str, pd.DataFrame], semana_atual: int) -> alt.Chart:
-    """Realizado acumulado de cada coordenação (linha cheia) x Meta PCM dela (tracejada)."""
+def curvas_coordenacoes(curvas: dict[str, pd.DataFrame], semana_atual: int,
+                        tipos=("Realizado", "Meta PCM"), todas: list[str] | None = None) -> alt.Chart:
+    """Realizado acumulado de cada coordenação (linha cheia) x Meta PCM dela (tracejada).
+    ``tipos``: linhas a mostrar; ``todas``: coordenações existentes (mantém a cor de cada uma
+    ao filtrar)."""
     partes = []
     for coord, c in curvas.items():
         for col, tipo in (("realizado", "Realizado"), ("meta_pcm", "Meta PCM")):
+            if tipo not in tipos:
+                continue
             d = c[["Semana", col]].rename(columns={col: "Valor"}).dropna()
             d["Coordenação"], d["Tipo"] = coord, tipo
             partes.append(d)
@@ -61,7 +66,8 @@ def curvas_coordenacoes(curvas: dict[str, pd.DataFrame], semana_atual: int) -> a
     ch = (alt.Chart(long).mark_line(strokeWidth=2.5)
           .encode(x=alt.X("Semana:O", axis=alt.Axis(labelAngle=0)),
                   y=alt.Y("Valor:Q", title="Aderência acumulada", axis=alt.Axis(format="%")),
-                  color=alt.Color("Coordenação:N", legend=alt.Legend(orient="top", title=None)),
+                  color=alt.Color("Coordenação:N", legend=alt.Legend(orient="top", title=None),
+                                  scale=alt.Scale(domain=todas or list(curvas))),
                   strokeDash=alt.StrokeDash("Tipo:N", scale=alt.Scale(domain=["Realizado", "Meta PCM"],
                                                                       range=[[1, 0], [6, 4]]),
                                             legend=alt.Legend(orient="top", title=None)),
