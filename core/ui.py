@@ -2,6 +2,7 @@
 # Paleta no padrão do Sentinel (azul-marinho #1e3a5f + dourado #e8a920) e os
 # cartões de KPI herdados da v2 (borda colorida pela tendência).
 
+import pandas as pd
 import streamlit as st
 
 CSS_GLOBAL = """
@@ -71,5 +72,8 @@ def pct(v, casas: int = 2) -> str:
         return "-"
 
 
-def reais(v: float) -> str:
-    return ("R$ " + f"{v:,.0f}").replace(",", ".")
+def reais(v: float, casas: int = 0) -> str:
+    """657389.4 -> "R$ 657.389" (casas=2: "R$ 657.389,40")."""
+    if v is None or pd.isna(v):
+        return ""
+    return "R$ " + f"{v:,.{casas}f}".translate(str.maketrans(",.", ".,"))

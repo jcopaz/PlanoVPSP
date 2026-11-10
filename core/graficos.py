@@ -9,6 +9,8 @@ from __future__ import annotations
 import altair as alt
 import pandas as pd
 
+from core.ui import reais
+
 AZUL = "#0052cc"
 VERDE = "#10b981"
 AMBAR = "#f59e0b"
@@ -138,7 +140,15 @@ def curva_financeira(curva: pd.DataFrame, semana_atual: int, series: list[str] |
              "Orçamento OPEX oficial": CINZA, "Realizado contábil SAP": ROXO}
     cores = {k: v for k, v in todas.items() if k in d.columns and (series is None or k in series)}
     long = d.melt("Semana", value_vars=list(cores), var_name="Série", value_name="Valor").dropna(subset=["Valor"])
-    ch = _base(long, "R$ acumulado", "$,.0f", cores)
+    long["Rótulo"] = long["Valor"].map(reais)
+    # eixo em R$ com ponto no milhar (o formato "$" do Vega é dólar)
+    eixo = alt.Axis(labelExpr="'R$ ' + replace(format(datum.value, ',.0f'), /,/g, '.')")
+    ch = _base(long, "R$ acumulado", ",.0f", cores).encode(
+        y=alt.Y("Valor:Q", title="R$ acumulado", axis=eixo),
+        tooltip=["Série:N", "Semana:O", alt.Tooltip("Rótulo:N", title="R$ acumulado")])
+    txt = long[~((long["Série"] == "Projetado") & (long["Semana"] == semana_atual))]
+    cor = alt.Color("Série:N", scale=alt.Scale(domain=list(cores), range=list(cores.values())), legend=None)
+    rot = _rotulos(txt, alt.X("Semana:O"), cor, {"Realizado", "Orçamento OPEX oficial"}, "Série", ["Série"])
     regua = (alt.Chart(pd.DataFrame({"Semana": [semana_atual]}))
              .mark_rule(color=CINZA, strokeDash=[3, 3]).encode(x="Semana:O"))
-    return (ch + regua).properties(height=460).configure_view(strokeOpacity=0)
+    return (ch + rot + regua).properties(height=460).configure_view(strokeOpacity=0)

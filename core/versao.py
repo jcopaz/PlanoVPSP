@@ -94,6 +94,8 @@
 # 5.3.2 (10/11/2026): abas (Configurações, Dados, Dashboard) guardam a aba escolhida —
 #   antes um "Salvar" (ex.: resetar senha) voltava para a 1ª aba; só a aba aberta executa.
 #   Versão centralizada no menu lateral.
+# 5.3.3 (10/11/2026): Financeiro em reais — eixo e tooltip "R$ 2.600.000" (antes "$2,600,000"),
+#   valor em R$ sem casas sobre cada ponto; tabela "R$ 370.051,23" (ordenação numérica mantida).
 
-APP_VERSION = "5.3.2"
+APP_VERSION = "5.3.3"
 APP_NOME = "Plano VP"

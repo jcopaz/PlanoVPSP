@@ -202,11 +202,11 @@ def _aba_financeiro(r: motor.ResultadoTrimestre) -> None:
         st.caption("Escolha ao menos uma linha.")
     if fin.tabela_itens is not None and not fin.tabela_itens.empty:
         st.markdown("##### 🧾 OPEX rateado por item")
-        st.dataframe(fin.tabela_itens, hide_index=True, width="stretch", column_config={
-            "Orçado Planejado (R$)": st.column_config.NumberColumn(format="R$ %.0f"),
-            "Realizado (R$)": st.column_config.NumberColumn(format="R$ %.0f"),
-            "Saldo Orçado (R$)": st.column_config.NumberColumn(format="R$ %.0f"),
-            "% Consumo Orçado": FMT_PCT, "% Físico": FMT_PCT})
+        # R$ pelo Styler: mostra "R$ 370.051,23" e a ordenação por clique segue numérica
+        cols_rs = ["Orçado Planejado (R$)", "Realizado (R$)", "Saldo Orçado (R$)"]
+        st.dataframe(fin.tabela_itens.style.format({c: lambda v: reais(v, 2) for c in cols_rs}),
+                     hide_index=True, width="stretch",
+                     column_config={"% Consumo Orçado": FMT_PCT, "% Físico": FMT_PCT})
     st.caption("Modelo top-down: envelope da PLAN ORÇ × curva física, rateado por item conforme o peso. "
                "R$/item é aproximação contábil.")
 
