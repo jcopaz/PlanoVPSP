@@ -24,6 +24,8 @@ regra de cálculo em [REGRA_ADERENCIA_PCM.md](REGRA_ADERENCIA_PCM.md).
 | 06/11/2026 | 5.1.0 | Dashboard abre no **trimestre corrente** (data de hoje); **lista de ativos** por upload, como lista suspensa em Lançamentos. |
 | 10/11/2026 | 5.2.0 | Upload do **Realizado do Power BI por Depto** (para quem não lança no app); filtro de linhas no gráfico Gerencial. |
 | 10/11/2026 | 5.3.0 | Valor da aderência escrito nos pontos das curvas e nas barras da Evolução (sem tabelas); eixo % corrigido; seleção de linhas no Financeiro. |
+| 10/11/2026 | 5.3.1–5.3.3 | Percentuais com 2 casas; versão só no menu; abas guardam a aba escolhida; Financeiro em R$. |
+| 11/11/2026 | 5.4.0 | **Keep-alive** (GitHub Actions + Playwright, a cada 6 h); documentação técnica reescrita. |
 
 ---
 

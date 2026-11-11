@@ -96,6 +96,9 @@
 #   Versão centralizada no menu lateral.
 # 5.3.3 (10/11/2026): Financeiro em reais — eixo e tooltip "R$ 2.600.000" (antes "$2,600,000"),
 #   valor em R$ sem casas sobre cada ponto; tabela "R$ 370.051,23" (ordenação numérica mantida).
+# 5.4.0 (11/11/2026): keep-alive — workflow keep-alive.yml (a cada 6 h) abre o app num
+#   Chromium sem tela (scripts/keep_alive.py) e o acorda se estiver dormindo; testado contra o
+#   app real. Documentação técnica reescrita (estado até a 5.3.3).
 
-APP_VERSION = "5.3.3"
+APP_VERSION = "5.4.0"
 APP_NOME = "Plano VP"

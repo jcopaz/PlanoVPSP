@@ -1,0 +1,33 @@
+# Mantém o Plano VP acordado no Streamlit Community Cloud.
+# O app dorme após ~12 h sem visitas; a cada 6 h este job abre o app num navegador
+# sem tela (scripts/keep_alive.py) e, se estiver dormindo, clica para acordar.
+# Repositório público: minutos do Actions são gratuitos.
+# Atenção: o GitHub DESLIGA agendamentos de repositórios sem nenhum commit há 60 dias
+# (avisa por e-mail). Para religar: Actions → Keep alive → Enable workflow.
+# Outra URL: Settings → Secrets and variables → Actions → Variables → APP_URL.
+name: Keep alive
+on:
+  schedule:
+    - cron: "17 */6 * * *"     # 4x por dia (UTC); minuto 17 evita a fila da hora cheia
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acordar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instala o Playwright (Chromium)
+        run: |
+          pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Abre o app
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: python scripts/keep_alive.py

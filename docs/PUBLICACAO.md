@@ -130,7 +130,7 @@ O repositório `jcopaz/PlanoVPSP` ainda tem dois arquivos com dados reais da MRS
 | Situação | O que fazer |
 |---|---|
 | Atualizar o código | `git push` na `main` → o Streamlit Cloud reinstala sozinho |
-| App "dormindo" (sem uso por dias) | abrir o link e clicar em *Yes, get this app back up* |
+| App "dormindo" | não deve acontecer: o workflow **Keep alive** (GitHub Actions, a cada 6 h) abre o app num navegador sem tela. Se dormir: abrir o link e clicar em *Yes, get this app back up*, e ver em GitHub → Actions se o Keep alive está ativo (o GitHub o desliga após 60 dias sem commit) |
 | Esqueci a senha de admin | outro admin reseta em Configurações → Usuários; sem nenhum admin: rodar `scripts/criar_usuario.py` apontando para o Neon (abaixo) |
 | Backup | Dados → Exportação → **Backup completo (.zip)** ao fechar cada trimestre |
 | Trocar a senha do Neon | Neon → Roles → reset password → atualizar a URL nos Secrets → *Reboot app* |

@@ -10,7 +10,7 @@ equipes executaram (lançado pelos programadores), por **Gerência** e por
 | **Login** | acesso por matrícula e senha (perfis admin, PCM, programador, leitura) | todos |
 | **Dashboard** | Resumo · Gerencial · Por Coordenação · Financeiro (OPEX) · Evolução | todos |
 | **Lançamentos** | lançar e corrigir atividades linha a linha (mesmas colunas do Excel) | programador, PCM, admin |
-| **Dados** | upload do plano do PCM e de trimestres passados; exportação em Excel (backup) | upload: PCM/admin · exportar: todos |
+| **Dados** | upload do plano do PCM, do realizado do Power BI, de trimestres passados e da lista de ativos; exportação em Excel (backup) | upload: PCM/admin · exportar: todos |
 | **Configurações** | SLA por Depto, equipes, listas, coordenações, trimestres, parâmetros, usuários | conforme perfil |
 
 📘 **Documentação:** [docs/MANUAL_USUARIO.md](docs/MANUAL_USUARIO.md) (como usar) ·
@@ -52,11 +52,11 @@ plano e **mantém os lançamentos**. Depois, os programadores lançam em **Lanç
 de Peso), o modelo v3 e os backups exportados pelo próprio app. Para vários arquivos
 de uma vez: `python scripts/carregar_no_banco.py arquivo1.xlsx arquivo2.xlsx`.
 
-## Publicar na web (Hugging Face Spaces + Neon)
+## Publicar na web (Streamlit Community Cloud + Neon)
 
-Passo a passo completo: [docs/PUBLICACAO.md](docs/PUBLICACAO.md) — hoje o app roda no
-**Hugging Face Spaces** (Dockerfile + envio automático pelo GitHub Actions). Resumo da
-alternativa Streamlit Cloud:
+No ar em **https://planovpsp.streamlit.app** — cada `git push` na `main` atualiza o app. Um
+workflow do GitHub Actions ([keep-alive.yml](.github/workflows/keep-alive.yml)) abre o app a cada
+6 h para ele não dormir. Passo a passo completo: [docs/PUBLICACAO.md](docs/PUBLICACAO.md). Resumo:
 
 1. Crie um projeto no **Neon** (região São Paulo) e copie a connection string.
 2. Em share.streamlit.io → *New app* → repositório `jcopaz/PlanoVPSP`, arquivo `app.py`.
@@ -78,7 +78,9 @@ auth/               login, sessão, senha (PBKDF2), permissões por perfil
 database/           conexão (SQLite/Postgres), tabelas, consultas
 core/               regras de negócio — cálculo das curvas, pesos, OPEX, Excel, PCM
 modules/            telas: home (menu), dashboard, lancamentos, dados, configuracoes
-scripts/            criar_usuario, carregar_no_banco, conferir_pcm (validação x Power BI), importar_plano_pcm, ...
+scripts/            criar_usuario, carregar_no_banco, conferir_pcm (validação x Power BI), keep_alive, ...
+tests/              regra do PCM e lista de ativos (python tests/test_regra_pcm.py)
+.github/workflows/  keep-alive (app acordado) e sync-hf (Hugging Face, inativo)
 modelos/            planilha modelo (em branco) e exemplo com dados fictícios
 docs/               manual do usuário e documentação técnica
 ```
